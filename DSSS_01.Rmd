@@ -1,30 +1,108 @@
 ---
-title: "DSSS_01"
+title: "Data Science for Social Science - 01"
 author: "Reinhold Kliegl"
-date: '2022-02-10'
-output: html_document
+date: "2022-02-10 (updated: `r Sys.Date()`)"
+output:
+  html_document:
+    number_sections: yes
+    toc: yes
+    toc_depth: 2
+    toc_float: no
+    code_folding: hide
+editor_options: 
+  chunk_output_type: console
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+# Background
+
+## Theory
+< Describe the research questions and data>
+
+### Proposition 1
+
+
+### Proposition 2
+
+
+## Variables
+
+< Dictionary of variables >dasflasjemfrklwqejrtoqwjklöarjäoakwerlÖQWE
+
+# Setup
+
+R needs packages. You can install the packages needed for this script by running the `install.packages()` command in the next R chunk once. This command retrieves the packages from the web and installs them in a library on your computer. After you installed the packages, you can actually delete this chunk. The `library()`  command fetches the packages from the library on your computer and makes the commands in the packages available for the currect session. 
+
+
+```{r eval=FALSE}
+install.packages(c("tidyverse", "readxl", "WriteXLS", "summarytools" ))
 ```
 
-## R Markdown
+The following commands retrieve the packages from the library on your computer. This needs to be done at the beginning of every script.
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
+```{r}
+library(tidyverse)
+library(readxl)
+library(WriteXLS)
+library(summarytools)
 ```
 
-## Including Plots
+# Generate data
 
-You can also embed plots, for example:
++ Generate data
++ Write to Excel spreadsheet
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+```{r}
+x <- round(runif(300, min=0, max=10))
+X <- matrix(x, nrow=20)
+df <- data.frame(Subj=1:20, X)
+
+WriteXLS(df, "./data/DSSS_01.xlsx")
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+# Read data
+
+```{r}
+df2 <- read_xlsx("./data/DSSS_01.xlsx")
+```
+
+# Transformations
+
+```{r}
+df2 <- 
+  df2 |> 
+  mutate(Subj = paste0("S", str_pad(Subj, width=2, side="left", pad="0")))
+
+df2
+```
+
+# Descriptive statistics
+
+```{r}
+descr(df2)
+```
+
+
+# Graphs
+
+```{r}
+df2 |> ggplot(aes(x=X1, y=X2)) + 
+  geom_point()
+```
+
+
+# Inferential statistics
+
+For example, correlations between first five variables. 
+
+```{r}
+df2 |>  
+  select(X1:X5) |> 
+  cor()
+```
+
+# Appendix
+
+```{r}
+sessionInfo()
+```
+
