@@ -16,6 +16,7 @@ editor_options:
 # Background
 
 ## Theory
+
 < Describe the research questions and data>
 
 ### Proposition 1
@@ -46,14 +47,20 @@ library(WriteXLS)
 library(summarytools)
 ```
 
-# Generate data
+# Toy example data
 
 + Generate data
-+ Write to Excel spreadsheet
++ Write data to Excel spreadsheet
 
 ```{r}
-x <- round(runif(300, min=0, max=10))
-X <- matrix(x, nrow=20)
+set.seed(42)
+x <- round(   runif(300, min=0, max=10  )   )
+length(x)
+
+X <- matrix(x, nrow=20, byrow=FALSE)
+
+df0 <- data.frame(Subj=1:20)
+
 df <- data.frame(Subj=1:20, X)
 
 WriteXLS(df, "./data/DSSS_01.xlsx")
@@ -61,18 +68,37 @@ WriteXLS(df, "./data/DSSS_01.xlsx")
 
 # Read data
 
+Now we can read the data we generated back into R. 
+
 ```{r}
 df2 <- read_xlsx("./data/DSSS_01.xlsx")
 ```
 
-# Transformations
+# Preprocessing
 
 ```{r}
-df2 <- 
-  df2 |> 
-  mutate(Subj = paste0("S", str_pad(Subj, width=2, side="left", pad="0")))
+df3 <- 
+  df2 %>% 
+  mutate(Subj=paste0("S", Subj))
+df3
 
-df2
+df3 |> ggplot(aes(x=Subj, y=X1, group=1)) + geom_line() 
+# Ugly graphic!
+
+
+df4 <- 
+  df2 |> 
+  mutate(Subj = paste0("User ", str_pad(Subj, width=2, side="left", pad="0")))
+
+df4
+df4 |> 
+  ggplot(aes(x=Subj, y=X1, group=1)) + 
+  geom_line() + 
+  xlab("")
+# Much better graphic!
+
+# Alternative, not-tidyverse style of generating the same graph
+ggplot(df4, aes(x=Subj, y=X1, group=1)) + geom_line() + xlab("")
 ```
 
 # Descriptive statistics
@@ -85,8 +111,7 @@ descr(df2)
 # Graphs
 
 ```{r}
-df2 |> ggplot(aes(x=X1, y=X2)) + 
-  geom_point()
+df4 |> ggplot(aes(x=X1, y=X2)) + geom_point() + theme_bw()
 ```
 
 
@@ -95,9 +120,7 @@ df2 |> ggplot(aes(x=X1, y=X2)) +
 For example, correlations between first five variables. 
 
 ```{r}
-df2 |>  
-  select(X1:X5) |> 
-  cor()
+df4 |>  select(X1:X5) |> cor()
 ```
 
 # Appendix
