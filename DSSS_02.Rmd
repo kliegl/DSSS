@@ -128,7 +128,6 @@ datw_2_hk
 ```{r}
 view(dfSummary(datw_1_hk))
 
-descr(datw_1_hk)  
 freq(datw_1_hk)
 ```
 
