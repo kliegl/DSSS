@@ -1,0 +1,148 @@
+---
+title: "DSSS-02: Reading Students' Data"
+author: "Reinhold Kliegl"
+date: "2022-02-17 (updated: `r Sys.Date()`)"
+output:
+  html_document:
+    number_sections: yes
+    toc: yes
+    toc_depth: 2
+    toc_float: no
+    code_folding: hide
+editor_options: 
+  chunk_output_type: console
+---
+
+# Setup
+
+```{r}
+library(tidyverse)
+library(readxl)
+library(lubridate)
+
+
+library(summarytools)
+
+```
+
+# Exploring students' data
+
+## Danila
+
+### Read the data
+
+```{r}
+datw_dk <- read_csv("data/Kramarenko_1_TSLA.csv")
+datw_dk
+```
+
+### A few quick checks
+
+```{r}
+view(dfSummary(datw_dk))
+
+descr(datw_dk)  
+```
+
+We do not get a statistic for `Date` because the variable is not of type `[numeric]`
+
+### Graph
+
+Quick and dirty ...
+
+```{r}
+dat_dk <- datw_dk |> pivot_longer(2:6, names_to="Course", values_to="Price")
+dat_dk
+
+dat_dk |> 
+  filter(Course %in% c("Low", "High")) |> 
+  ggplot(aes(x=Date, y=Price, group=Course, color=Course)) +
+  geom_point() + geom_line() +
+  scale_x_date("", date_breaks = "1 year", date_minor_breaks= "3 months", date_labels= "%Y-%m") +
+  scale_y_continuous("Price") +
+  scale_color_manual("Course", values=c("blue", "red")) +
+  theme_bw()
+```
+
+We can do better with a few changes to the above command.
+
+Alternatives
+  + transfoming
+  + smoothing
+  + ...
+    
+
+## Victoria
+
+Participants with media experience rating credibility of true and fake news about hot topics (abortion, LGBQ, death penalty). Subject number was added as shown in class.
+
+
+```{r}
+datw_vv <- read_xlsx("data/Vziatysheva_1_MEXP.xlsx")
+datw_vv
+```
+
+### A few quick checks
+
+```{r}
+view(dfSummary(datw_vv))
+
+descr(datw_vv)  
+freq(datw_vv)
+```
+
+### Graph
+
+```{r}
+
+```
+
+
+## Hamid Keshavarz
+
+### Read the data
+
+This is a challenge for me, too. Happy to learn how we deal with this format.
+
+```{r}
+datw_001_hk <- read.csv("data/Keshavarz_001_Mayer.csv")
+datw_001_hk
+
+# Hm?
+
+datw_002_hk <- read.csv("data/Keshavarz_001_Mayer.csv")
+datw_002_hk
+```
+
+
+### A few quick checks
+
+
+```{r}
+view(dfSummary(datw_hk))
+
+descr(datw_hk)  
+freq(datw_hk)
+```
+
+
+# EMOTIKON - physical fitness 
+
+An example of a relational data base. 
+
++ Child
++ School
++ Community
+
+```{r}
+
+
+
+```
+
+# Appendix
+
+```{r}
+sessionInfo()
+```
+

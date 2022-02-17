@@ -1,5 +1,5 @@
 ---
-title: "Data Science for Social Science - 01"
+title: "DSSS-01: Introduction"
 author: "Reinhold Kliegl"
 date: "2022-02-10 (updated: `r Sys.Date()`)"
 output:
@@ -124,6 +124,16 @@ df4 |>  select(X1:X5) |> cor()
 ```
 
 # Appendix
+
+# How to we change the default RMarkdown script?
+
+We can google "changing default RMarkdown script". This page is offered:
+
+https://community.rstudio.com/t/changing-default-rmd-script/36426 
+
+Not very helpful, unfortunately. At least, I cannot see the file with the default code.
+
+# What packages did we use in this session?
 
 ```{r}
 sessionInfo()
