@@ -17,17 +17,16 @@ editor_options:
 
 ```{r}
 library(tidyverse)
-library(readxl)
+library(readxl)   # this package allows us to read xlsx files
 library(lubridate)
 
 
-library(summarytools)
-
+library(summarytools) # dfSummary(), descr(), freq()
 ```
 
 # Exploring students' data
 
-## Danila
+## Danila Kramarenko
 
 ### Read the data
 
@@ -41,27 +40,29 @@ datw_dk
 ```{r}
 view(dfSummary(datw_dk))
 
-descr(datw_dk)  
+descr(datw_dk, stats="common")  
+descr(datw_dk, stats="fivenum") 
 ```
 
 We do not get a statistic for `Date` because the variable is not of type `[numeric]`
 
 ### Graph
 
-Quick and dirty ...
+For an efficient generation of plots we usually need the data in wide format.
 
 ```{r}
-dat_dk <- datw_dk |> pivot_longer(2:6, names_to="Course", values_to="Price")
+dat_dk <- datw_dk |> pivot_longer(2:5, names_to="StockStatistic", values_to="Price")
 dat_dk
 
 dat_dk |> 
-  filter(Course %in% c("Low", "High")) |> 
-  ggplot(aes(x=Date, y=Price, group=Course, color=Course)) +
-  geom_point() + geom_line() +
+  filter(StockStatistic %in% c("Low", "High") & Date < "2013-01-01") |> 
+  ggplot(aes(x=Date, y=Price, group=StockStatistic, color=StockStatistic)) +
+  geom_smooth() +
+#  geom_point() + geom_line() +
   scale_x_date("", date_breaks = "1 year", date_minor_breaks= "3 months", date_labels= "%Y-%m") +
-  scale_y_continuous("Price") +
-  scale_color_manual("Course", values=c("blue", "red")) +
-  theme_bw()
+  scale_y_log10("Price") +
+  scale_color_manual("Stock statistic", values=c(  "green", "red")) +
+  theme_bw(base_size=14)
 ```
 
 We can do better with a few changes to the above command.
@@ -70,11 +71,19 @@ Alternatives
   + transfoming
   + smoothing
   + ...
+  
+  
+For correlations we need to variables to be correlated in the wide format. For example,...  
     
+```{r}
+cor(datw_dk[, 2:5])
+```
 
-## Victoria
+The high correlations are spuriously high due to the change in stocks over years. We could try to remove the overall trend and check the correlations then.
 
-Participants with media experience rating credibility of true and fake news about hot topics (abortion, LGBQ, death penalty). Subject number was added as shown in class.
+## Victoria Vziatysheva
+
+Participants with media experience rating credibility of true and fake news about hot topics (abortion, LGBTQ, death penalty). Subject number was added as shown in class.
 
 
 ```{r}
@@ -87,7 +96,7 @@ datw_vv
 ```{r}
 view(dfSummary(datw_vv))
 
-descr(datw_vv)  
+descr(datw_vv, stats="common")  
 freq(datw_vv)
 ```
 
@@ -105,26 +114,67 @@ freq(datw_vv)
 This is a challenge for me, too. Happy to learn how we deal with this format.
 
 ```{r}
-datw_001_hk <- read.csv("data/Keshavarz_001_Mayer.csv")
-datw_001_hk
+datw_1_hk <- read.csv("data/Keshavarz_1_Mayer.csv")
+datw_1_hk
 
 # Hm?
 
-datw_002_hk <- read.csv("data/Keshavarz_001_Mayer.csv")
-datw_002_hk
+datw_2_hk <- read.csv("data/Keshavarz_1_Mayer.csv")
+datw_2_hk
 ```
-
 
 ### A few quick checks
 
-
 ```{r}
-view(dfSummary(datw_hk))
+view(dfSummary(datw_1_hk))
 
-descr(datw_hk)  
-freq(datw_hk)
+descr(datw_1_hk)  
+freq(datw_1_hk)
 ```
 
+## Bella Mamedova
+
+```{r}
+datw_bm <- read_xlsx("data/Mamedova_1_GermanCredit.xlsx") 
+datw_bm
+```
+
+### A few quick checks
+
+```{r}
+view(dfSummary(datw_bm))
+
+descr(datw_bm)  
+freq(datw_bm)
+```
+
+### Graph
+
+```{r}
+
+```
+
+# Anastasia Yanechko
+
+```{r}
+datw_ay <- read.csv("data/Yanechko_1_Anime.csv")
+datw_ay
+```
+
+### A few quick checks
+
+```{r}
+view(dfSummary(datw_ay))
+
+descr(datw_ay)  
+freq(datw_ay)
+```
+
+### Graph
+
+```{r}
+
+```
 
 # EMOTIKON - physical fitness 
 
