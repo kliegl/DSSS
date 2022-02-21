@@ -156,7 +156,7 @@ freq(datw_bm)
 # Anastasia Yanechko
 
 ```{r}
-datw_ay <- read.csv("data/Yanechko_1_Anime.csv")
+datw_ay <- read.csv("data/Yanechko_1_Anime_v2.csv")
 datw_ay
 ```
 

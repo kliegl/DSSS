@@ -1,0 +1,389 @@
+---
+title: "EMOTIKON: Longitudinal and Cross-sectional Growth in Physical Fitness"
+author: "Reinhold Kliegl, Thea Fühner, Kathleen Golle & Urs Granacher"
+date: "2021-02-16 (updated: `r Sys.time()`)"
+output:
+  html_document:
+    number_sections: yes
+    toc: yes
+    toc_depth: 2
+    toc_float: no
+    code_folding: hide
+editor_options: 
+  chunk_output_type: console
+---
+
+# Longitudinal and cross-sectional ontogenesis (**Emotikon**, 2006 to 2009)
+
+The data are from Golle et al. (2015). Physical Fitness Percentiles of German Children Aged 9–12 Years: Findings from a Longitudinal Study. _PLoS ONE, 10,_ 11 (doi:10.1371/journal.pone.0142393).  
+
+The primary purpose was to use these data for Figure 1 for the 2021 Emotikon paper. We test age, sex, and age x sex effects for the longitudinal data (i.e., across four assessments). This is basically a reanalysis of the paper with LMMs. 
+
+In this **longitudinal LMM**, there was significant growth for each test (decelerating for `Endurance` and `Coordination`)  Boys outperformed girls; this sex effect was not significant for `Coordination`. The interaction between age and sex was significant only for  `Muscle power up` (i..e, `BPT`) with larger growth for boys than girls.
+
+With four **cross-sectional LMMs** (i.e., within each year of assessment), we also tested the between-subject age differences. There were no age effects or age x sex interactions in any of the four cross-sectional LMMs. Moreover, boys generally outperformed girls, but this effect was not significant for all tests in all years
+
+# Setup
+
+Variables for this re-analysis were extracted from a comprehensive data file; tests were z-transformed with mean and standard deviation of first assessment in 2006 with `GMWG15_preprocessing.Rmd`.
+
+The following variables are used.
+ 
+1. School: 27 levels 
+2. Child: 240 levels; all children were tested four times (2006 - 2009)
+3. Sex: "Boys" (n=152), "Girls" (n=88)
+4. age: test date - middle of month of birthdate 
+5. year: 2006 - 2009
+6. Test: 5 levels:
+    + Endurance (`Run`; cardiorespiratory):  6 minute endurance run [m]; to nearest 9m in 9x18m field
+    + Coordination (`Star_r`): Star coordination run [m/s]; 9x9m field, 4 x diagonal = 50.912 m
+    + Speed(`S50_r`): 50-meters sprint [m/s]
+    + PowerLOW (`THJ`; muscular): tripe hop jump [cm] 
+    + PowerUP (`BPT`; muscular): (1-kg medicine) ball push test [m] with one arm
+7. zScore
+
+```{r message = FALSE}
+library(tidyverse)
+library(cowplot)
+library(lme4)
+
+dat <- readRDS("data/gmwg15.rds") %>% filter(Test != "Flexibility")
+```
+
+# Figure 1
+
+```{r  message=FALSE, fig.width=12, fig.height=6}
+ggstuff <- 
+  list(scale_shape_manual(values=c(16,21)), 
+      scale_x_continuous(breaks=c(9, 9.5, 10)),
+      scale_y_continuous(breaks=c(-1, 0, 1)),
+      xlab(NULL), ylab(NULL),geom_hline(yintercept=0),
+      coord_cartesian(xlim=c(9, 10), ylim=c(-1.5,1.5) ),
+      theme_bw(base_size=13), theme(legend.position = "none") 
+  )
+
+# Main figure
+t_AST <- 
+  dat %>% 
+  group_by(Child, year, Sex, Test) %>% 
+  summarise(age=first(age), zScore_M=mean(zScore), .groups="drop") %>% 
+  group_by(year, Sex, Test) %>% 
+  summarise(N=n(), age=mean(age), M=mean(zScore_M), SD=sd(zScore_M), CI=1.96*SD/sqrt(N), .groups="drop") 
+
+fig1 <- 
+  dat %>%
+  ggplot(aes(x=age, y=zScore, group=Sex, shape=Sex)) +  
+  facet_grid(. ~Test) +
+  geom_smooth(method="lm", formula=y ~ poly(x,2), se=TRUE,  colour="black", size=.75) + 
+  geom_point(data=t_AST, aes(x=age, y=M), fill="white", size=2) + 
+  scale_shape_manual(values=c(16,21)) +
+  scale_x_continuous("Age") +
+  scale_y_continuous("z-score") + 
+  geom_hline(yintercept=0) + theme_bw(base_size=18) +
+  theme(legend.justification=c(.99,.01), legend.position=c(.99, .01),legend.title=element_blank() ) 
+
+# Endurance
+t_Run <- 
+  dat %>% 
+  filter(year==2006, Test == "Endurance") %>% 
+  mutate(Age = cut(age, breaks=3)) %>% 
+  group_by(Age, Sex) %>% 
+  summarise(N=n(), zScore=mean(zScore), age=mean(age), .groups="drop")
+
+Run <- 
+  dat %>% filter(year==2006 & Test=="Endurance") %>% 
+  ggplot(aes(x=age, y=zScore, group=Sex, shape=Sex)) +
+  geom_smooth(method="lm", formula=y ~ x, 
+              linetype=1, se=TRUE, colour="black", size=.75) +
+  geom_point(data=t_Run, fill="white", size=2) +
+  ggstuff
+
+# Coordination
+t_Star_r <- 
+  dat %>% 
+  filter(year==2006, Test == "Coordination") %>% 
+  mutate(Age = cut(age, breaks=3)) %>% 
+  group_by(Age, Sex) %>% 
+  summarise(N=n(), zScore=mean(zScore), age=mean(age), .groups="drop")
+
+Star_r <- 
+  dat %>% filter(year==2006 & Test=="Coordination") %>% 
+  ggplot(aes(x=age, y=zScore, group=Sex, shape=Sex)) +
+  geom_smooth(method="lm", formula=y ~ x, 
+              linetype=1, se=TRUE, colour="black", size=.75) +
+  geom_point(data=t_Star_r, fill="white", size=2) +   
+  ggstuff
+
+# Speed
+t_S50_r <- 
+  dat %>% 
+  filter(year==2006, Test == "Speed") %>% 
+  mutate(Age = cut(age, breaks=3)) %>% 
+  group_by(Age, Sex) %>% 
+  summarise(N=n(), zScore=mean(zScore), age=mean(age), .groups="drop")
+
+S50_r <- 
+  dat %>% filter(year==2006 & Test=="Speed") %>% 
+  ggplot(aes(x=age, y=zScore, group=Sex, shape=Sex)) +
+  geom_smooth(method="lm", formula=y ~ x, 
+              linetype=1, se=TRUE, colour="black", size=.75) +
+  geom_point(data=t_S50_r, fill="white", size=2) +  
+  ggstuff
+
+# Muscle power low
+t_THT <- 
+  dat %>% 
+  filter(year==2006, Test == "PowerLOW") %>% 
+  mutate(Age = cut(age, breaks=3)) %>% 
+  group_by(Age, Sex) %>% 
+  summarise(N=n(), zScore=mean(zScore), age=mean(age), .groups="drop")
+
+THT <- 
+  dat %>% filter(year==2006 & Test=="PowerLOW") %>% 
+  ggplot(aes(x=age, y=zScore, group=Sex, shape=Sex)) +
+  geom_smooth(method="lm", formula=y ~ x, 
+              linetype=1, se=TRUE, colour="black", size=.75) +
+  geom_point(data=t_THT, fill="white", size=2) +
+  ggstuff
+
+# Muscle power up
+t_BPT <- 
+  dat %>% 
+  filter(year==2006, Test == "PowerUP") %>% 
+  mutate(Age = cut(age, breaks=3)) %>% 
+  group_by(Age, Sex) %>% 
+  summarise(N=n(), zScore=mean(zScore), age=mean(age), .groups="drop")
+
+BPT <- 
+  dat %>% filter(year==2006 & Test=="PowerUP") %>% 
+  ggplot(aes(x=age, y=zScore, group=Sex, shape=Sex)) +
+  geom_smooth(method="lm", formula=y ~ x, 
+              linetype=1, se=TRUE, colour="black", size=.75) +
+  geom_point(data=t_BPT, fill="white", size=2) +
+  ggstuff 
+
+fig1 %>% 
+  ggdraw() +
+  draw_plot(fig1) +
+  draw_plot(Run,    x = .066, y=  .725, width = .12, height = .184, scale = 1) +
+  draw_plot(Star_r, x = .254, y=  .725, width = .12, height = .184, scale = 1) +
+  draw_plot(S50_r,  x = .442, y = .725, width = .12, height = .184, scale = 1) +
+  draw_plot(THT,    x = .630, y = .725, width = .12, height = .184, scale = 1) +
+  draw_plot(BPT,    x = .818, y = .725, width = .12, height = .184, scale = 1)
+
+ggsave("figures/Figure_1.pdf", width=12, height=6)
+```
+
+#  Longitudinal linear mixed model:  age (2nd-order) x Sex within Test
+
+## LMM
+
+```{r}
+contrasts(dat$Sex) <- (-1)*MASS::contr.sdif(2)
+dat$sex <- ifelse(dat$Sex == "Boys", +1/2, -1/2)
+
+dat$Test <- droplevels(dat$Test)
+contrasts(dat$Test) <- MASS::contr.sdif(5)
+dat$a1 <- dat$age - 11  # center at 11 years
+dat$a2 <- dat$a1^2
+
+lmm_long_cmplx <- lmer(zScore ~ 1 + Test/((a1+a2)*Sex) + (1 + a1 + a2 | Child) + (1 + a1 + a2 + sex | School),
+                        data=dat, REML=FALSE, control=lmerControl(calc.derivs=FALSE))
+summary(rePCA(lmm_long_cmplx)) # not identified
+
+# Pruning
+# Do we need some school-related VCs? Yes.
+lmm_long_1 <- lmer(zScore ~ 1 + Test/((a1+a2)*Sex) + (1 + a1 + a2 | Child) + (1 | School),
+                        data=dat, REML=FALSE, control=lmerControl(calc.derivs=FALSE))
+summary(rePCA(lmm_long_1)) # identified
+VarCorr(lmm_long_1)
+anova(lmm_long_1, lmm_long_cmplx) # but significant loss
+
+# Drop school-related CPs and VC for sex
+lmm_long_2 <- lmer(zScore ~ 1 + Test/((a1+a2)*Sex) + (1 + a1 + a2 | Child) + (1 + a1 + a2 || School),
+                        data=dat, REML=FALSE, control=lmerControl(calc.derivs=FALSE))
+summary(rePCA(lmm_long_2)) # not identified
+anova(lmm_long_2, lmm_long_cmplx) # not significant - RES for School is ok
+
+# Do we need Child-related VC and CPs for quadratic trend of age? No
+lmm_long_3a <- lmer(zScore ~ 1 + Test/((a1+a2)*Sex) + (1 + a1 | Child) + (1 + a1 + a2 || School),
+                        data=dat, REML=FALSE, control=lmerControl(calc.derivs=FALSE))
+summary(rePCA(lmm_long_3a)) # ok
+VarCorr(lmm_long_3a)
+anova(lmm_long_3a, lmm_long_cmplx) # no significant loss relative to complex LMM. Keep!
+
+# Alternative: use CP of a1 instead of a2 for school?  Worse than 3a. Stay with 3a
+lmm_long_3b <- lmer(zScore ~ 1 + Test/((a1+a2)*Sex) + (1 + a1  | Child) + (1 + a1 | School),
+                        data=dat, REML=FALSE, control=lmerControl(calc.derivs=FALSE))
+summary(rePCA(lmm_long_3b)) # ok
+VarCorr(lmm_long_3b)
+anova(lmm_long_3b, lmm_long_cmplx) # significant loss in goodness of fit
+
+# Parsimonious LMM selection
+lmm_long <- lmm_long_3a
+
+print(summary(lmm_long))
+
+# ... possible further simplification: drop interactions with quadratic trend of age from fixed effects
+lmm_long_simple <- lmer(zScore ~ 1 + Test/(Sex*a1 + a2) + (1 + a1 | Child) + (1 + a1 + a2 || School),
+                        data=dat, REML=FALSE, control=lmerControl(calc.derivs=FALSE))
+anova(lmm_long_simple, lmm_long) # no significant loss relative to complex LMM. Keep!
+
+print(summary(lmm_long_simple))
+
+# post-hoc LMM to test simple effects of age for flexibility
+lmm_long_posthoc <- lmer(zScore ~ 1 + Test/Sex/(a1 + a2) + (1 + a1 | Child) + (1 + a1 + a2 || School),
+                        data=dat, REML=FALSE, control=lmerControl(calc.derivs=FALSE))
+
+print(summary(lmm_long_posthoc))
+```
+
+## Summary 
+
++ Note
+    + "linear growth" refers to significant linear trend of age
+    + "decelerating growth" refers to significant negative quadratic trend of age.
+
++ Age and Sex: Boys > girls and significant linear growth across age for all tests. In addition, decelerating growth for Endurance and Coordination, and a significantly larger linear growth for boys than girls for `Muscle power up`
+    
++ Test contrasts
+    + Coordination grows more than Endurance and more than Speed
+    + Muscle power low grows more than Speed, but less than Muscle power up
+    
++ Variance components and correlation parameters
+    + Child: There are reliable individual differences between children's GM and their linear rate of growth and they correlate positively (.56; i.e., Matthew effect.)
+    + School: There are reliable differences between schools's GM and between their second-order growth-rates; no support for correlation parameters.
+
+# Cross-sectional LMMs 
+
+## LMM for 9 to 10 year old children
+
+```{r}
+dat06 <- dat %>% filter(year==2006)
+
+contrasts(dat06$Sex) <- (-1)*MASS::contr.sdif(2)
+dat06$sex <- ifelse(dat06$Sex == "Boys", +1/2, -1/2)
+
+contrasts(dat06$Test) <- MASS::contr.sdif(5)
+dat06$a1 <- dat06$age - 9.5  # center at 11 years
+dat06$a2 <- dat06$a1^2
+
+lmm_cross06 <- lmer(zScore ~ 1 + Test/((a1+a2)*Sex) + (1  | Child) + (1 | School),
+                        data=dat06, REML=FALSE, control=lmerControl(calc.derivs=FALSE))
+summary(rePCA(lmm_cross06))
+print(summary(lmm_cross06))
+
+# ... possible further simplification: only main effects of age and sex within Test as fixed effects
+lmm_cross_simple06 <- lmer(zScore ~ 1 + Test/(a1+Sex) + (1  | Child) + (1 | School),
+                        data=dat06, REML=FALSE, control=lmerControl(calc.derivs=FALSE))
+
+anova(lmm_cross_simple06, lmm_cross06)
+
+print(summary(lmm_cross_simple06))
+```
+
+**Summary**
+
++ **Age and age x sex:** There is no evidence for significant growth and also no evidence for significant age x sex interactions for any of the tests within the first assessment (i.e., year: 2006). Reasons are that age and sex are between-Childect factors and the comparatively small number of children (n=240). 
++ **Sex**. With the exception of `Coordination`, boys significantly outperform girls.
++ **Variance components**. Only varying intercepts.
+
+
+## LMM for 10 to 11 year old children
+
+```{r}
+dat07 <- dat %>% filter(year==2007)
+
+contrasts(dat07$Sex) <- (-1)*MASS::contr.sdif(2)
+dat07$sex <- ifelse(dat07$Sex == "Boys", +1/2, -1/2)
+
+contrasts(dat07$Test) <- MASS::contr.sdif(5)
+dat07$a1 <- dat07$age - 9.5  # center at 11 years
+dat07$a2 <- dat07$a1^2
+
+lmm_cross07 <- lmer(zScore ~ 1 + Test/((a1+a2)*Sex) + (1  | Child) + (1 | School),
+                        data=dat07, REML=FALSE, control=lmerControl(calc.derivs=FALSE))
+print(summary(lmm_cross07))
+
+# ... possible further simplification: only main effects of age and sex within Test as fixed effects
+lmm_cross_simple07 <- lmer(zScore ~ 1 + Test/(a1+Sex) + (1  | Child) + (1  | School),
+                        data=dat07, REML=FALSE, control=lmerControl(calc.derivs=FALSE))
+
+anova(lmm_cross_simple07, lmm_cross07)
+
+print(summary(lmm_cross_simple07))
+```
+
+**Summary**
+
++ **Age and age x sex:** There is no evidence for significant growth and also no evidence for significant age x sex interactions for any of the tests within the last assessment (i.e., year: 2007). Reasons are that age and sex are between-Childect factors and the comparatively small number of children (n=240). 
++ **Sex**. Boys significantly outperform girls on all tests. 
++ **Variance components**. Only varying intercepts.
+
+## LMM for 11 to 12 year old children
+
+```{r}
+dat08 <- dat %>% filter(year==2008)
+
+contrasts(dat08$Sex) <- (-1)*MASS::contr.sdif(2)
+dat08$sex <- ifelse(dat08$Sex == "Boys", +1/2, -1/2)
+
+contrasts(dat08$Test) <- MASS::contr.sdif(5)
+dat08$a1 <- dat08$age - 9.5  # center at 11 years
+dat08$a2 <- dat08$a1^2
+
+lmm_cross08 <- lmer(zScore ~ 1 + Test/((a1+a2)*Sex) + (1  | Child) + (1 | School),
+                        data=dat08, REML=FALSE, control=lmerControl(calc.derivs=FALSE))
+print(summary(lmm_cross08))
+
+# ... possible further simplification: only main effects of age and sex within Test as fixed effects
+lmm_cross_simple08 <- lmer(zScore ~ 1 + Test/(a1+Sex) + (1  | Child) + (1  | School),
+                        data=dat08, REML=FALSE, control=lmerControl(calc.derivs=FALSE))
+
+anova(lmm_cross_simple08, lmm_cross08)
+
+print(summary(lmm_cross_simple08))
+```
+
+**Summary**
+
++ **Age and age x sex:** There is no evidence for significant growth and also no evidence for significant age x sex interactions for any of the tests within the last assessment (i.e., year: 2008). Reasons are that age and sex are between-Childect factors and the comparatively small number of children (n=240). 
++ **Sex**. Boys significantly outperform girls on `Endurance`, `Coordination`, and `Muscle power up`; sex is not significant for `Speed` and `Muscle power low`.  
++ **Variance components**. Only varying intercepts.
+
+## LMM for 12 to 13 year old children
+
+```{r}
+dat09 <- dat %>% filter(year==2009)
+
+contrasts(dat09$Sex) <- (-1)*MASS::contr.sdif(2)
+dat09$sex <- ifelse(dat09$Sex == "Boys", +1/2, -1/2)
+
+contrasts(dat09$Test) <- MASS::contr.sdif(5)
+dat09$a1 <- dat09$age - 9.5  # center at 11 years
+dat09$a2 <- dat09$a1^2
+
+lmm_cross09 <- lmer(zScore ~ 1 + Test/((a1+a2)*Sex) + (1  | Child) + (1 | School),
+                        data=dat09, REML=FALSE, control=lmerControl(calc.derivs=FALSE))
+print(summary(lmm_cross09))
+
+# ... possible further simplification: only main effects of age and sex within Test as fixed effects
+lmm_cross_simple09 <- lmer(zScore ~ 1 + Test/(a1+Sex) + (1  | Child) + (1  | School),
+                        data=dat09, REML=FALSE, control=lmerControl(calc.derivs=FALSE))
+
+anova(lmm_cross_simple09, lmm_cross09)
+
+print(summary(lmm_cross_simple09))
+```
+
+**Summary** 
+
++ **Age and age x sex:** There is no evidence for significant growth and also no evidence for significant age x sex interactions for any of the tests within the last assessment (i.e., year: 2009). Reasons are that age and sex are between-Childect factors and the comparatively small number of children (n=240). 
++ **Sex**. Boys significantly outperform girls on `Endurance` and the two `Muscle power` tests; sex is not significant for `Coordination` and `Speed`.  One could argue that girls caught up with boys due to earlier onset of puberty in the last two tests. 
++ **Variance components**. Only varying intercepts.
+
+# Appendix 
+ 
+```{r include=TRUE}
+sessionInfo()
+```
