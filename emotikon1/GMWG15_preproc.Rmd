@@ -24,14 +24,23 @@ We z-transform scores with mean and standard deviation of first assessment in 20
 ```{r}
 library(tidyverse)
 library(haven)
+library(readxl)
 library(cowplot)
 
 ```
 
 # Long format
 
++ I am not the only one having problems reading **some** spss files; see:
+    + https://github.com/tidyverse/haven/issues/615
+    + https://github.com/WizardMac/ReadStat/pull/252 
++ There is a workaround for us. I was able to open the file with SPSS and save it as .xlsx spreadsheet and as .csv.
+
 ```{r}
-dat <- read_spss("data/gmwg15.sav") %>% 
+#dat <- read_spss("data/gmwg15.sav") %>%     # spss does not work currently
+#dat <- read_csv("data/gmwg15.csv") |>       # comma separated values works
+
+dat <- read_xlsx("data/gmwg15.xlsx") |>      # excel works
   select(School=School_number, Child=number, Sex=sex,
         age_t1:age_t4, height_06:height_09,
         weight_06:weight_09, bmi_06:bmi_09,
@@ -41,7 +50,7 @@ dat <- read_spss("data/gmwg15.sav") %>%
   mutate(School = as_factor(paste0("S", School)),
          Child = as_factor(paste0("C", str_pad(Child, 3, "left", "0"))),
          Sex = as_factor(Sex),
-         Sex= fct_recode(Sex, Boys = "male", Girls = "female"),
+         Sex= fct_recode(Sex, Boys = "1", Girls = "2"),
          Sex = fct_relevel(Sex, "Boys", "Girls"),
          year = as.numeric(year)+2000,
          age = if_else(year==2006, age_t1, 
@@ -75,7 +84,11 @@ z_norms <-
 
 dat <- left_join(dat, z_norms, by="Test") %>% mutate(zScore = (score - M)/SD) 
 
-saveRDS(dat, file="data/gmwg15.rds")
+
+saveRDS(dat, file="data/gmwg15.rds")  
+
+# to read a file saved with saveRDS use:
+dat <- readRDS("data/gmwg15.rds")
 ```
 
 
