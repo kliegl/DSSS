@@ -1,0 +1,64 @@
+---
+title: "My1"
+output: html_document
+date: '2022-02-27'
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Setup
+
+```{r}
+library(tidyverse)
+library(readxl)   # this package allows us to read xlsx files
+library(lubridate)
+
+library(summarytools) # dfSummary(), descr(), freq()
+```
+
+
+### Read the data
+
+```{r}
+
+datw_dk <- read_csv("data/Kramarenko_1_TSLA.csv")
+datw_dk 
+```
+
+
+
+```{r}
+view(dfSummary(datw_dk))
+
+descr(datw_dk, stats="common")  
+descr(datw_dk, stats="fivenum") 
+```
+
+### Graph
+
+```{r}
+dat_dk <- datw_dk |> pivot_longer(2:5, names_to="StockStatistic", values_to="Price")
+dat_dk
+
+dat_dk |> 
+  filter(StockStatistic %in% c("Low", "High") & Date < "2013-01-01") |> 
+  ggplot(aes(x=Date, y=Price, group=StockStatistic, color=StockStatistic)) +
+  geom_smooth() +
+#  geom_point() + geom_line() +
+  scale_x_date("", date_breaks = "1 year", date_minor_breaks= "3 months", date_labels= "%Y-%m") +
+  scale_y_log10("Price") +
+  scale_color_manual("Stock statistic", values=c(  "green", "red")) +
+  theme_bw(base_size=14)
+```
+
+
+```{r}
+cor(datw_dk[2:7])
+```
+
+The high correlations are spuriously high due to the change in stocks over years. We could try to remove the overall trend and check the correlations then.
+

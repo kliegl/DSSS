@@ -1,0 +1,73 @@
+---
+title: "Yanechko, Anime"
+output: html_document
+html_document:
+  number_selections: yes
+  toc: yes
+  toc_depth: 2
+  toc_float: no
+  code_folding: hide
+editor_options:
+  chunk_output_type: console
+---
+### Setup
+```{r}
+library(tidyverse)
+library(readxl)
+library(lubridate)
+library(summarytools)
+```
+### Reading the data
+```{r}
+anime_ay <- read.csv("data/Yanechko_1_Anime.csv")
+```
+
+### Generating summary statistics
+
+```{r}
+view(dfSummary(anime_ay))
+
+descr(anime_ay, stats = "common")
+descr(anime_ay, stats = "fivenum")
+```
+
+We do not get a statistic for such variables as Name, Japanese_name, Type, Studio, Release_season, Tags, Description, Content_Warning, Related_Mange, Related_anime, Voice_actors, staff, because they are non-numerical variables. 
+
+### Graph
+
+```{r}
+an_ay <- anime_ay %>% filter(Rank >= 150) %>%
+select("Rating", "Episodes", "Type")
+an_ay$Rating <- as.numeric(an_ay$Rating)
+an_ay$Episodes <- as.numeric(an_ay$Episodes)
+an_ay$Type <- as.factor(an_ay$Type)
+
+ggplot(an_ay, aes(x = Episodes, y = Rating, colour = Type)) + 
+  geom_point(alpha = 0.3) +
+  stat_smooth(data=subset(an_ay,Type=="TV"),
+              method = "loess", se = T) +
+  stat_smooth(data=subset(an_ay,Type=="Web"),
+              method = "loess", se = T) +
+  stat_smooth(data=subset(an_ay,Type=="OVA"),
+              method = "loess", se = T) +
+  stat_smooth(data=subset(an_ay,Type=="Music"),
+              method = "loess", se = T) +
+  stat_smooth(data=subset(an_ay,Type=="DVD S"),
+              method = "loess", se = T) +
+  stat_smooth(data=subset(an_ay,Type=="Other"),
+              method = "loess", se = T) +
+  stat_smooth(data=subset(an_ay,Type=="TV Sp"),
+              method = "loess", se = T) +
+   geom_smooth(method = "loess", formula = y ~ x, se = FALSE)
+```
+
+Comment: We can see trendlines only for anime series on TV, Web and OVA. 
+As for TV, the amount of episodes doesn't seem to have an effect on anime's rating. 
+As for OVA, it seems that the more episodes, the better rating this type of anime has. 
+As for Web, it seems that if the most optimal amount of episodes is approximately 50; up to this point the more episodes the show has, the better rating it gets. However, after that point the more episodes web anime has, the worse rating it gets. 
+
+### Appendix
+
+```{r}
+sessionInfo()
+```
