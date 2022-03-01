@@ -1,0 +1,104 @@
+---
+title: "DSSS-03: Tidyverse Commands"
+author: "Reinhold Kliegl"
+date: "2022-02-28 (updated: `r Sys.Date()`)"
+output:
+  html_document:
+    number_sections: yes
+    toc: yes
+    toc_depth: 2
+    toc_float: no
+    code_folding: hide
+editor_options: 
+  chunk_output_type: console
+---
+
+# Setup
+
+```{r}
+library(tidyverse)
+library(readxl)   # this package allows us to read xlsx files
+library(lubridate)
+
+library(summarytools) # dfSummary(), descr(), freq()
+```
+
+# Read data 
+
+We use Anastasia's data
+
+```{r}
+data <- read.csv("students/data/Yanechko_1_Anime.csv")
+
+dat <- 
+  data %>% 
+  as_tibble() |>  
+  filter(Rank >= 150) %>%
+  select("Rating", "Episodes", "Type")
+```
+
+# Preprocessing
+
+```{r}
+dat$Type <- factor(dat$Type)
+levels(dat$Type)[1:8] <- c("DVD", "Movie", "Music", "Other", "OVA", "TV", "TV_Sp", "Web")
+
+dat$Type <- factor(dat$Type, levels=c("TV", "Movie", "Web", "OVA", "Music", "TV_Sp", "DVD", "Other"))
+```
+
+
+# tidyverse
+ 
+Vocabulary -- is about 10 commands
+
++ Command works on columns (variables)
+    + `select()` -- extract a subset of columns
+    + `relocate()` -- adjust position of variable
+
++ Command works on rows (usually observations)
+    + `filter()` -- extract a subset of rows 
+    + `arrange()` -- orders the observations in the data frame
+    + `mutate()` -- add new variables/columns, unless you overwrite an existing one.
+    
++ logical operators: 
+    + ==, >, >, >=, >=
+    + |, &,  %in%
+    + is.na()
+    
++ arithmetic operations
+    + +, -, *, /, ^
+    + log(), log(2), log10()
+    + lead(), lag(), lag2()
+    + cumsum()
+    
+```{r}
+dat_TV <-  dat |> filter(Type=="TV")
+#dat_TV_wrong <-  dat |> filter(Type=="TV ")
+
+dat2a <- dat |> filter(Type %in% c("TV", "OVA"))
+dat2b <- dat |> filter(Type=="TV" | Type=="OVA")
+
+dat3 <- dat |> filter(Type =="TV" & Episodes==13)
+
+dat4a <- dat |> filter(is.na(Rating))
+dat4b <- dat |> filter(!is.na(Rating))
+
+dat5 <- dat |> arrange(desc(Type), Episodes)
+
+dat6a <- dat |> relocate(Rating, .after=Type)
+dat6b <- dat6a |> relocate(Type, .before=Episodes)
+
+dat6c <- dat |> dplyr::select(3, 2, 1) # not good style, but fast
+
+dat7 <- dat6b |> mutate(Rating_10 = Rating*10,
+                        Rating_log = log(Rating))
+```
+
+descending
+
+# Appendix
+
+```{r}
+sessionInfo()
+```
+
