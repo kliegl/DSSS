@@ -81,7 +81,7 @@ dat <-
 ## Factor variables
 
 ```{r}
-freq(dat)
+dat |> select(Sex:Purpose) |> freq()
 ```
 
 
