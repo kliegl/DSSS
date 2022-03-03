@@ -41,7 +41,7 @@ data <- read_sav(path)
 Let’s look through summary statistics of the file
 
 ```{r}
-#view(dfSummary(data))
+view(dfSummary(data))
 ```
 
 Here we can see the somewhat unusual coding of the data as "dbl+lbl", that is double (numeric) and labelled. 
@@ -65,6 +65,7 @@ dat_w <-
 glimpse(dat_w)
 
 attributes(dat_w$sex)
+attributes(dat_w$COUNTRYno)
 
 dat_w <- 
   dat_w |> 
@@ -80,9 +81,10 @@ dat_w <-
 # check
 n_distinct(dat_w$Child) == nrow(dat_w)
 
+# 
 dat <- 
   dat_w |> 
-  pivot_longer(physact60:acachieve, names_to="Measure", values_to="score") |> 
+  pivot_longer(physact60:acachieve, names_to="Measure", values_to="rating") |> 
   mutate(Measure=factor(Measure, levels=c("hourexce", "timeexe", "physact60",
                                           "acachieve", "lifesat")))
 ```
@@ -90,19 +92,63 @@ dat <-
 
 # Descriptives
 
+## Third-order interaction
+
+### Table of means
 ```{r}
-tbl <- 
+tbl4 <- 
   dat |>
   group_by(Measure, Country, Sex, Age) |> 
-  summarise(N=n(), score_M=mean(score, na.rm=TRUE), score_SD=sd(score, na.rm=TRUE))
+  summarise(N=n(), score_M=mean(rating, na.rm=TRUE), score_SD=sd(rating, na.rm=TRUE))
 ```
 
-# Graph
+### Graph
 
 ```{r}
-tbl |>  
+tbl4 |>  
   ggplot(aes(x=Age, y=score_M, group=Country, color=Country)) +
   facet_grid(Sex ~ Measure) +
+  geom_point() + geom_line() +
+  theme_bw()
+```
+
+## First-order interaction
+
+### Table of means
+```{r}
+tbl2 <- 
+  dat |>
+  group_by(Measure, Country) |> 
+  summarise(N=n(), score_M=mean(rating, na.rm=TRUE), score_SD=sd(rating, na.rm=TRUE))
+```
+
+### Graph
+
+```{r}
+tbl2 |>  
+  ggplot(aes(x=Measure, y=score_M, group=Country, color=Country)) +
+  geom_point() + geom_line() +
+  theme_bw()
+```
+
+
+## First-order interaction for academic achievement
+
+### Table of means
+```{r}
+tbl2aca <- 
+  dat |>
+  filter(Measure == "acachieve") |> 
+  group_by(Country, Age) |> 
+  summarise(N=n(), score_M=mean(rating, na.rm=TRUE), score_SD=sd(rating, na.rm=TRUE)) |> 
+  rename("Academic Achievement" = score_M)
+```
+
+### Graph
+
+```{r}
+tbl2aca |>  
+  ggplot(aes(y=`Academic Achievement`, x=Country, group=Age, color=Age)) +
   geom_point() + geom_line() +
   theme_bw()
 ```

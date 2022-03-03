@@ -58,6 +58,7 @@ dat <-
   data |> 
   rename(age=2, job=Job, Saving=6, Checking=7, credit=8, duration=9) |> 
   mutate(Subj = paste0("S", str_pad(Subj, width=3, side="left", pad="0")),
+         Subj = as_factor(Subj),
          Sex = factor(Sex, levels=c("female", "male")),
          Job = ordered(job, labels=c("unskilled, not resident", "unskilled, resident", 
                                     "skilled", "highly skilled")),
@@ -73,7 +74,7 @@ dat <-
   select(Subj, Sex, Job, Housing:Checking, Purpose, job, housing:checking, duration, credit)
   
 # check
-#view(dfSummary(dat))
+view(dfSummary(dat))
 ```
 
 # Summary statistics
@@ -96,30 +97,41 @@ descr(dat, stats="common")
 ## Duration
 
 ```{r}
-dat |>
+tbl_dur  <- 
+  dat |>
   group_by(Sex, Job) |> 
-  summarise(N=n(), dur_M=mean(duration, na.rm=TRUE), dur_SE=sd(duration, na.rm=TRUE)/sqrt(N)) |> 
+  summarise(N=n(), dur_M=mean(duration, na.rm=TRUE), dur_SE=sd(duration, na.rm=TRUE)/sqrt(N)) 
+
+tbl_dur |> 
+  mutate(Sex = fct_rev(Sex)) |> 
   ggplot(aes(x=Job, y=dur_M, group=Sex, color=Sex)) +
+#  geom_point() + geom_line() +
   geom_point(position=position_dodge(width=.1)) + geom_line(position=position_dodge(width=.1)) +
-  geom_errorbar(aes(ymax=dur_M + 2*dur_SE, ymin=dur_M - 2*dur_SE), width=0.15,
-                position=position_dodge(width=.1)) +
-  scale_colour_manual("", values=c("red", "blue")) +
+#  geom_errorbar(aes(ymax=dur_M + dur_SE, ymin=dur_M - dur_SE), width=0.15) +
+   geom_errorbar(aes(ymax=dur_M + 2*dur_SE, ymin=dur_M - 2*dur_SE), width=0.15,
+                 position=position_dodge(width=.1)) +
+  scale_colour_manual("", values=c("blue", "red")) +
   scale_y_continuous("Duration [months]") +
-  theme_bw()
+  theme_bw(base_size=14) + theme(legend.position=c(0.99, .01), legend.justification = c(0.99, .01))
 ```
 
 
 ## Amount of credit
 
 ```{r}
-dat |>
+tbl_crdt <- 
+  dat |>
   group_by(Sex, Job) |> 
-  summarise(N=n(), crdt_M=mean(credit, na.rm=TRUE), crdt_SE=sd(credit, na.rm=TRUE)/sqrt(N)) |> 
+  summarise(N=n(), crdt_M=mean(credit, na.rm=TRUE), crdt_SE=sd(credit, na.rm=TRUE)/sqrt(N))
+
+tbl_crdt |> 
+  mutate(Sex = fct_rev(Sex)) |> 
   ggplot(aes(x=Job, y=crdt_M, group=Sex, color=Sex)) +
   geom_point(position=position_dodge(width=.1)) + geom_line(position=position_dodge(width=.1)) +
   geom_errorbar(aes(ymax=crdt_M + 2*crdt_SE, ymin=crdt_M - 2*crdt_SE), width=0.15,
                 position=position_dodge(width=.1)) +
-  scale_colour_manual("", values=c("red", "blue")) +
+  scale_colour_manual("", values=c("blue", "red")) +
+#  scale_y_continuous(("Amount of credit [EUR]") )+
   scale_y_log10("Credit [EUR]") +
   theme_bw()
 ```
