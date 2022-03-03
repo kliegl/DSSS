@@ -1,0 +1,356 @@
+---
+title: "EMOTIKON - Preprocessing demos: forcats package"
+author: "Reinhold Kliegl"
+date: "2022-03-03 (updated: `r Sys.time()`)"
+output:
+  html_document:
+    number_sections: yes
+    toc: yes
+    toc_depth: 2
+    toc_float: no
+    code_folding: show
+editor_options: 
+  chunk_output_type: console
+---
+
+# Setup
+
++ Read a subset of EMOTIKON data  ()
++ Compute zscores for each test
+
+```{r}
+library(lme4)
+library(tidyverse)
+library(magrittr)
+
+dat <- 
+  readRDS("data/EmotikonSubset.rds") %>%
+  group_by(Test) %>% 
+  mutate(zScore = as.numeric(scale(score)))
+```
+
+# Some basic about the critical facto
+
+## fct_count
+
+Tibble with levels and instances at each level. 
+
+```{r}
+fct_count(dat$Cohort)
+fct_count(dat$Cohort)$n  # extract a variable
+```
+
+## fct_unique
+
+Vector with levels as values.
+
+```{r}
+fct_unique(dat$Cohort)
+levels(dat$Cohort)
+```
+
+# Generate a default figure for study
+
+We need 
+
++ table of means
++ figure
+
+```{r}
+# table of means
+t1_AST <- 
+  dat %>%
+  mutate( AgeBins = cut( age, breaks = c(7.8, seq(8.2, 9.2, 0.25), 9.3))) %>% 
+  group_by(AgeBins, Sex, Test) %>% 
+  summarise(N=n(), Age=mean(age),  M=mean(zScore), SD=sd(zScore), 
+            CI=1.96*SD/sqrt(N), .groups="drop") 
+t1_AST
+
+# figure
+fig1 <- 
+  dat %>%
+  ggplot(aes(x=age, y=zScore, group=Sex, shape=Sex)) +  facet_grid(. ~ Test) +
+  geom_smooth(method="lm", formula=y ~ poly(x,1), se=FALSE,  colour="black", size=.75) + 
+  geom_point(data=t1_AST, aes(x=Age, y=M), fill="white") + 
+  scale_shape_manual(values=c(16,21)) +
+  scale_x_continuous("Age", breaks=seq(8,9,.5)) +
+  scale_y_continuous("z-score [± SD]") + 
+  geom_hline(aes(yintercept=0)) + 
+  coord_cartesian(xlim=c(8.0, 9.1), ylim=c(-0.75,+0.75)) +
+  theme_bw() +  theme(legend.justification=c(0,1), legend.position=c(0, 1), 
+  legend.background=element_rect(fill="white", color="black"), legend.title=element_blank())
+fig1
+```
+
+What is **not** nice about this graph?
+
++ new labels
++ differt order for sex
+
+# Recode
+
+Change the **label** of factor levels with new factor; could also overwrite the old one
+
++ fct_recode()
+
+```{r}
+dat %<>% 
+  mutate(Component = 
+         fct_recode(Test, Endurance = "Run", 
+                          Coordination = "Star_r", 
+                          Speed = "S20_r",
+                          PowerLOW = "SLJ", 
+                          PowerUP = "BPT"))
+dat
+```
+
+
+
+```{r}
+# table of means
+t2_AST <- 
+  dat %>%
+  mutate( AgeBins = cut( age, breaks = c(7.8, seq(8.2, 9.2, 0.25), 9.3))) %>% 
+  group_by(AgeBins, Sex, Component) %>% 
+  summarise(N=n(), Age=mean(age),  M=mean(zScore), SD=sd(zScore), 
+            CI=1.96*SD/sqrt(N), .groups="drop") 
+t2_AST
+
+# figure
+fig2 <- 
+  dat %>%
+  ggplot(aes(x=age, y=zScore, group=Sex, shape=Sex)) +  facet_grid(. ~ Component) +
+  geom_smooth(method="lm", formula=y ~ poly(x,1), se=FALSE,  colour="black", size=.75) + 
+  geom_point(data=t2_AST, aes(x=Age, y=M), fill="white") + 
+  scale_shape_manual(values=c(16,21)) +
+  scale_x_continuous("Age", breaks=seq(8,9,.5)) +
+  scale_y_continuous("z-score [± SD]") + 
+  geom_hline(aes(yintercept=0)) + 
+  coord_cartesian(xlim=c(8.0, 9.1), ylim=c(-0.75,+0.75)) +
+  theme_bw() +  theme(legend.justification=c(0,1), legend.position=c(0, 1), 
+  legend.background=element_rect(fill="white", color="black"), legend.title=element_blank())
+fig2
+```
+
+# Reverse or relevel
+
+Reverse the order of factor levels
+
++ fct_rev()       # reverse
++ fct_relevel()   # relevel
++ fct_infreq()    # frequency
++ fct_inorder()   # in order of appearance
+
+## fct_rev()
+
+```{r}
+dat %<>% mutate(Sex = fct_rev(Sex))
+
+# table of means
+t3_AST <- 
+  dat %>%
+  mutate( AgeBins = cut( age, breaks = c(7.8, seq(8.2, 9.2, 0.25), 9.3))) %>% 
+  group_by(AgeBins, Sex, Component) %>% 
+  summarise(N=n(), Age=mean(age),  M=mean(zScore), SD=sd(zScore), 
+            CI=1.96*SD/sqrt(N), .groups="drop") 
+t3_AST
+
+# figure
+fig3 <- 
+  dat %>%
+  ggplot(aes(x=age, y=zScore, group=Sex, shape=Sex)) +  facet_grid(. ~ Component) +
+  geom_smooth(method="lm", formula=y ~ poly(x,1), se=FALSE,  colour="black", size=.75) + 
+  geom_point(data=t3_AST, aes(x=Age, y=M), fill="white") + 
+  scale_shape_manual(values=c(16,21)) +
+  scale_x_continuous("Age", breaks=seq(8,9,.5)) +
+  scale_y_continuous("z-score [± SD]") + 
+  geom_hline(aes(yintercept=0)) + 
+  coord_cartesian(xlim=c(8.0, 9.1), ylim=c(-0.75,+0.75)) +
+  theme_bw() +  theme(legend.justification=c(0,1), legend.position=c(0, 1), 
+  legend.background=element_rect(fill="white", color="black"), legend.title=element_blank())
+fig3
+```
+
+This figure corresponds to Figure 1 in paper. 
+
+
+# fct_relevel() 
+
+```{r}
+levels(dat$Component)
+dat %<>% mutate(Compx = fct_rev(Component))
+levels(dat$Compx)
+
+dat %<>% mutate(Comp2 = fct_relevel(Component, c("PowerUP","Endurance", "Coordination",  "Speed",  "PowerLOW" ) ))
+levels(dat$Comp2)
+
+t4_AST <- 
+  dat %>%
+  mutate( AgeBins = cut( age, breaks = c(7.8, seq(8.2, 9.2, 0.25), 9.3))) %>% 
+  group_by(AgeBins, Sex, Comp2) %>% 
+  summarise(N=n(), Age=mean(age),  M=mean(zScore), SD=sd(zScore), 
+            CI=1.96*SD/sqrt(N), .groups="drop") 
+t4_AST
+
+# figure
+fig4 <- 
+  dat %>%
+  ggplot(aes(x=age, y=zScore, group=Sex, shape=Sex)) +  facet_grid(. ~ Comp2) +
+  geom_smooth(method="lm", formula=y ~ poly(x,1), se=FALSE,  colour="black", size=.75) + 
+  geom_point(data=t4_AST, aes(x=Age, y=M), fill="white") + 
+  scale_shape_manual(values=c(16,21)) +
+  scale_x_continuous("Age", breaks=seq(8,9,.5)) +
+  scale_y_continuous("z-score [± SD]") + 
+  geom_hline(aes(yintercept=0)) + 
+  coord_cartesian(xlim=c(8.0, 9.1), ylim=c(-0.75,+0.75)) +
+  theme_bw() +  theme(legend.justification=c(0,1), legend.position=c(0, 1), 
+  legend.background=element_rect(fill="white", color="black"), legend.title=element_blank())
+fig4
+```
+
+
+# `fct_infreq()` and `fct_inorder()´ 
+
+We can sort factor levels by their frequency or by their order of appearance in the data frame. 
+
+```{r}
+datx <- tibble(f = factor(c("b", "b", "a", "c", "c", "c")))
+datx$f
+fct_inorder(datx$f)
+fct_infreq(datx$f)
+
+datx <- datx |> mutate(g = fct_inorder(f), h = fct_infreq(f))
+datx$f
+datx$g
+datx$h
+```
+
+## `fct_collapse()`
+
+
+```{r}
+dat %<>% mutate(Comp4 = fct_collapse(Component, 
+                                     'Endurance + PowerUP' = c("Endurance", "PowerUP"), 
+                                     'Physical skill' = c("Coordination", "Speed", "PowerLOW"))) 
+levels(dat$Comp4)
+
+
+t6_AST <- 
+  dat %>%
+  mutate( AgeBins = cut( age, breaks = c(7.8, seq(8.2, 9.2, 0.25), 9.3))) %>% 
+  group_by(AgeBins, Sex, Comp4) %>% 
+  summarise(N=n(), Age=mean(age),  M=mean(zScore), SD=sd(zScore), 
+            CI=1.96*SD/sqrt(N), .groups="drop") 
+t6_AST
+
+# figure
+fig6 <- 
+  dat %>%
+  ggplot(aes(x=age, y=zScore, group=Sex, shape=Sex)) +  facet_grid(. ~ Comp4) +
+  geom_smooth(method="lm", formula=y ~ poly(x,1), se=FALSE,  colour="black", size=.75) + 
+  geom_point(data=t6_AST, aes(x=Age, y=M), fill="white") + 
+  scale_shape_manual(values=c(16,21)) +
+  scale_x_continuous("Age", breaks=seq(8,9,.25)) +
+  scale_y_continuous("z-score [± SD]") + 
+  geom_hline(aes(yintercept=0)) + 
+  coord_cartesian(xlim=c(8.0, 9.1), ylim=c(-0.75,+0.75)) +
+  theme_bw() +  theme(legend.justification=c(0,1), legend.position=c(0, 1), 
+  legend.background=element_rect(fill="white", color="black"), legend.title=element_blank())
+fig6
+```
+
+
+# A bit more sophisticated ...
+
+## `fct_reorder()`
+
+```{r  }
+# We could also fct_reorder -- by default small first
+dat$Comp3 <- fct_reorder(dat$Component, dat$Component, length)
+fct_count(dat$Comp3)  # does work!
+
+# also other statistics, e.g., median
+dat %>% group_by(Component) %>% summarise(N=n(), median=median(zScore, na.rm=TRUE))
+dat %>% group_by(Component) %>% summarise(N=n(), mean=mean(zScore, na.rm=TRUE))
+
+t5_AST <- 
+  dat %>%
+  mutate( AgeBins = cut( age, breaks = c(7.8, seq(8.2, 9.2, 0.25), 9.3))) %>% 
+  group_by(AgeBins, Sex, Comp3) %>% 
+  summarise(N=n(), Age=mean(age),  M=mean(zScore), SD=sd(zScore), 
+            CI=1.96*SD/sqrt(N), .groups="drop") 
+t5_AST
+
+# figure
+fig5 <- 
+  dat %>%
+  ggplot(aes(x=age, y=zScore, group=Sex, shape=Sex)) +  facet_grid(. ~ Comp3) +
+  geom_smooth(method="lm", formula=y ~ poly(x,1), se=FALSE,  colour="black", size=.75) + 
+  geom_point(data=t5_AST, aes(x=Age, y=M), fill="white") + 
+  scale_shape_manual(values=c(16,21)) +
+  scale_x_continuous("Age", breaks=seq(8,9,.5)) +
+  scale_y_continuous("z-score [± SD]") + 
+  geom_hline(aes(yintercept=0)) + 
+  coord_cartesian(xlim=c(8.0, 9.1), ylim=c(-0.75,+0.75)) +
+  theme_bw() +  theme(legend.justification=c(0,1), legend.position=c(0, 1), 
+  legend.background=element_rect(fill="white", color="black"), legend.title=element_blank())
+fig5
+```
+
+## fct_reorder2
+
++ `fct_reorder()` reorders levels by their relationship (mean, median) with another variable (see above).
++ `fct_reorder2()` reorders levels by their final values when plotted with two other variables.
+
+This corresponds (roughly) to Figure 4: Cohort x Component in paper, but tests appear in order of mean `zScore` of last cohort (2019). The example illustrates how this can be done in the `ggplot()` command.
+
+The initial result was almost, but not exactly what expected:  Endurance was not lowest, but in third position because of some surprising prediction of the cubic prediction. To get the order using the 2019 means, `geom_point()` must appear before `geom_smooth()`. 
+
+Of course, we could have reordered already when constructing the table.  
+
+```{r fig.width=7, fig.height=3.5}
+t_CT <- dat %>% 
+  mutate(cohort = as.numeric(as.character(Cohort))) %>% 
+  group_by(cohort, Component, Child) %>%   
+  summarise(N=n(), M=mean(zScore)) %>% 
+  group_by(cohort, Component) %>% 
+  summarise(N=n(), zScore=mean(M), SD=sd(M), CI=1.96*SD/sqrt(N), .groups="drop") %>% 
+  mutate(Comp6 = fct_reorder2(Component, cohort, zScore))
+
+tail(t_CT)
+
+# n of children per cohort
+nChild <-
+  dat %>% 
+  group_by(Cohort) %>% 
+  summarise(N=length(unique(Child)))
+
+fig8 <-
+  dat %>%
+  mutate(cohort = as.numeric(as.character(Cohort))) %>% 
+  ggplot(aes(x=cohort, y=zScore, 
+             group=Component, color=Component)) + 
+  geom_point(data=t_CT, aes(x=cohort, y=zScore, group=Comp6, color=Comp6), fill="white") + 
+  geom_smooth(method="lm", formula=y~poly(x,3), se=FALSE) +
+  scale_shape_manual(values=c(16,21)) +
+  scale_x_continuous("Cohort", breaks=seq(2011, 2019)) +
+  scale_y_continuous("z-score [± SD]") + 
+  geom_errorbar(data=t_CT, aes(ymax=zScore+CI, ymin=zScore-CI), width=0.05) +
+  scale_colour_manual("Component", values=c("red", "orange", "green", "blue", "violet")) +
+  geom_hline(aes(yintercept=0)) + 
+  coord_cartesian(ylim=c(-0.2,+0.2)) +
+  theme_bw(base_size=14) +
+  theme(legend.position="right") +
+  annotate("text", x=2011+.30, y= -.18, label="N of children:", size=3) +
+  annotate("text", x=2011:2019, y= -0.195, label=nChild$N, size=3)
+fig8
+```
+
+The results show the expected loss for `Endurance` and gain in `Speed`. Of interest are also the curvilinear trends for the other three components, especially `PowerUP`. The differences between components show up as reliable cohort-related VCs. The size of the VC corresponds with the size of the effects shown in the figure. Note the difference in effect size is much smaller than the effect size associated with the age of children within the third grade.
+
+# Appendix
+
+```{r}
+sessionInfo()
+```
+

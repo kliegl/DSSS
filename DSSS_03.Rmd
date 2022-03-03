@@ -51,26 +51,32 @@ dat$Type <- factor(dat$Type, levels=c("TV", "Movie", "Web", "OVA", "Music", "TV_
  
 Vocabulary -- is about 10 commands
 
-+ Command works on columns (variables)
-    + `select()` -- extract a subset of columns
-    + `relocate()` -- adjust position of variable
+## Commands working on columns (variables)
 
-+ Command works on rows (usually observations)
-    + `filter()` -- extract a subset of rows 
-    + `arrange()` -- orders the observations in the data frame
-    + `mutate()` -- add new variables/columns, unless you overwrite an existing one.
++ `select()` -- extract a subset of columns
++ `relocate()` -- adjust position of variable
+
+## Commands works on rows (usually observations)
+
++ `filter()` -- extract a subset of rows 
++ `arrange()` -- orders the observations in the data frame
++ `mutate()` -- add new variables/columns, unless you overwrite an existing one.
     
-+ logical operators: 
-    + ==, >, >, >=, >=
-    + |, &,  %in%
-    + is.na()
+## Logical operators
+
++ ==, >, >, >=, >=
++ |, &,  %in%
++ is.na()
+
     
-+ arithmetic operations
-    + +, -, *, /, ^
-    + log(), log(2), log10()
-    + lead(), lag(), lag2()
-    + cumsum()
+## Arithmetic operators
+
++ +, -, *, /, ^
++ log(), log(2), log10()
++ lead(), lag(), lag2()
++ cumsum()
     
+
 ```{r}
 dat_TV <-  dat |> filter(Type=="TV")
 #dat_TV_wrong <-  dat |> filter(Type=="TV ")
@@ -94,7 +100,6 @@ dat7 <- dat6b |> mutate(Rating_10 = Rating*10,
                         Rating_log = log(Rating))
 ```
 
-descending
 
 # Appendix
 
