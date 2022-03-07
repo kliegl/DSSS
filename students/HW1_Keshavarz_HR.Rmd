@@ -6,7 +6,7 @@ output:
   html_document:
     number_sections: yes
     toc: yes
-    toc_depth: 2
+    toc_depth: 4
     toc_float: no
     code_folding: hide
 editor_options: 
@@ -19,14 +19,14 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Background
 
-This study tried to examine the effects of change attitudes of HR department (University of Tehran) on organizational innovation and happiness. The total population of the present study was 348 employees (HR departments) of the University of Tehran. 219 (62.9%) of the respondents were male and 129 (37.1%) were female. We also know about their experience in number of years.
+This study tried to examine the effects of change attitudes of HR department (University of Tehran) on organizational innovation and happiness. The total population of the present study was 348 employees (HR departments) of the University of Tehran. 219 (62.9%) of the respondents were male and 129 (37.1%) were female. We also know about their duration of employment or work experience in years (`experience`).
 
 The questionnaire items use a 5-level Likert scale from 1 to 5 (strongly disagree = 1, disagree = 2, have no opinion = 3, agree = 4 and strongly agree = 5).
 
-**Independent variables:** Change attitudes of HR department (AOCQ)
+**Independent variables:** Change attitudes of HR department (q01 to q18; AOCQ)
 
-+ cognitive attitude (q1 to q6)
-+ affective attitude (q7 to q12)
++ cognitive attitude (q01 to q06)
++ affective attitude (q07 to q12)
 + behavioral attitude (q13 to q18)
 
 ** Dependent variables**
@@ -40,6 +40,7 @@ The questionnaire items use a 5-level Likert scale from 1 to 5 (strongly disagre
     + meaningful work (q43 to q45)
     + interesting work (q46 to q49)
 
+. Moreover, the questionnaire on organizational happiness suggests that if the staff think of their workplace as a learning environment in which they can positively participate in a meaningful interesting job, organizational happiness will take place.
 # Setup
 
 ```{r}
@@ -59,10 +60,150 @@ glimpse(data)
 
 # Preprocessing
 
-```{r}
+## Basics
 
+```{r}
+dat <-
+  data |> 
+  mutate(Subj=as_factor(paste0("S", str_pad(1:348, width=3, side="left", pad="0"))),
+         Gender = factor(Gender, levels=c(1,2), labels=c("male", "female"))) |> 
+  relocate(Gender:experience, .after=Subj) 
 ```
 
+## Scale statistics (Cronbach's alpha)
+
+You need to `install.packages("psych")` for good scale statistics and more. 
+
+### Change attitude
+
++ `alpha()`  computes Cronbach's alpha and lots of other statistics
++ `str(aocq)` shows you exactly all the results computed by `alpha()` 
++  with  `aocq$scores`  we extract the subjects' scores (and can store them in `dat`)
+
+```{r}
+library(psych)
+aocq <- alpha(dat[,1:18], check.keys=TRUE)
+aocq
+
+str(aocq)
+dat$aocq <- aocq$scores
+```
+
+We need to know the content of questions. It looks like `q06` and `q07` need to be inverted. Aside from this, the scale statistics look very good. 
+
+#### Cognition
+
+```{r}
+cog <- psych::alpha(dat[ ,1:6], check.keys=TRUE)
+cog
+dat$cog <- cog$scores
+```
+
+Looking good!
+
+#### Affect
+
+```{r}
+aff <- psych::alpha(dat[ ,7:12], check.keys=TRUE)
+aff
+dat$aff <- aff$scores
+```
+
+A bit marginal, but still acceptable.
+
+#### Behavior
+
+```{r}
+beh <- psych::alpha(dat[ ,13:18], check.keys=TRUE)
+beh
+dat$beh <- beh$scores
+```
+
+Looking good!
+
+### Organizational innovation
+
+```{r}
+inno <- psych::alpha(dat[, 19:26], check.keys=TRUE)
+inno
+dat$inno <- inno$scores
+```
+
+Looking good!
+
+### Organizational staff happiness
+
+```{r}
+hppy <- psych::alpha(dat[, 27:49], check.keys=TRUE)
+hppy
+dat$hppy <- hppy$scores
+```
+
+Looking good!
+
+#### Learning (q27 to q30)
+
+```{r}
+lrn <- psych::alpha(dat[, 27:30], check.keys=TRUE)
+lrn
+dat$lrn <- lrn$scores
+```
+
+#### Self-openness (q31 to q35)
+
+```{r}
+sop <- psych::alpha(dat[, 31:35], check.keys=TRUE)
+sop
+dat$sop <- sop$scores
+```
+
+#### Participation (q36 to q38)
+
+```{r}
+prt <- psych::alpha(dat[, 36:38], check.keys=TRUE)
+prt
+dat$prt <- prt$scores
+```
+
+#### Positive thinking (q39 to q42)
+
+```{r}
+pth <- psych::alpha(dat[, 39:42], check.keys=TRUE)
+pth
+dat$pth <- pth$scores
+```
+
+#### Meaningful work (q43 to q45)
+
+```{r}
+mfw <- psych::alpha(dat[, 43:45], check.keys=TRUE)
+mfw
+dat$mwf <- mfw$scores
+```
+
+#### Interesting work (q46 to q49)
+
+```{r}
+wrk <- psych::alpha(dat[, 46:49], check.keys=TRUE)
+wrk
+dat$wrk <- wrk$scores
+```
+
+## Scale and subscale scores
+
+Often we don't really need item level information anymore. Here we simple extract the subject information and the scale and subscale scores into the dataframe we are going to use fpr descriptive statistics in reports, figures, and as input to some inferential statistics.
+
+```{r}
+dat_w <- dat |> select(Subj, Gender, experience:wrk)
+```
+
+From the wide format, we may need to go to the long format.
+
+
+# Descriptives and Figures
+
+
+# Inferential statistics (modeling)
 
 
 # Appendix
