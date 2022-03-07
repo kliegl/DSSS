@@ -88,7 +88,8 @@ ggplot(data) +
        y = "Number of sentences") +
   theme_bw()
 ```
-#
+
+
 # Appendix
 
 This command ensures that somebody at some later time can reproduce your analysis.
