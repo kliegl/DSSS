@@ -27,9 +27,23 @@ dat <-
   readRDS("data/EmotikonSubset.rds") %>%
   group_by(Test) %>% 
   mutate(zScore = as.numeric(scale(score)))
+
+dat |>
+  group_by(Test) |> 
+  summarise(N=n(), M=mean(score), SD=sd(score), zM=mean(zScore), zSD=sd(zScore))
+
+dat |> 
+  ggplot(aes(x=age, y=zScore, group=Sex, color=Sex)) +
+  facet_grid(. ~ Test) +
+#  geom_point() +
+  geom_smooth(method="lm") +
+  scale_colour_manual("", values=c("red", "blue")) +
+  theme_bw()
+
+
 ```
 
-# Some basic about the critical facto
+# Some basic about the critical factors
 
 ## fct_count
 
@@ -37,7 +51,11 @@ Tibble with levels and instances at each level.
 
 ```{r}
 fct_count(dat$Cohort)
-fct_count(dat$Cohort)$n  # extract a variable
+n_Cohort <- fct_count(dat$Cohort)$n  # extract a variable
+
+fct_count(dat$Sex)
+
+fct_count(dat$Test)
 ```
 
 ## fct_unique
@@ -60,7 +78,7 @@ We need
 # table of means
 t1_AST <- 
   dat %>%
-  mutate( AgeBins = cut( age, breaks = c(7.8, seq(8.2, 9.2, 0.25), 9.3))) %>% 
+  mutate(AgeBins = cut( age, breaks = c(7.8, seq(8.2, 9.0, 0.25), 9.3))) %>% 
   group_by(AgeBins, Sex, Test) %>% 
   summarise(N=n(), Age=mean(age),  M=mean(zScore), SD=sd(zScore), 
             CI=1.96*SD/sqrt(N), .groups="drop") 
@@ -75,7 +93,7 @@ fig1 <-
   scale_shape_manual(values=c(16,21)) +
   scale_x_continuous("Age", breaks=seq(8,9,.5)) +
   scale_y_continuous("z-score [± SD]") + 
-  geom_hline(aes(yintercept=0)) + 
+  geom_hline(aes(yintercept=0), color="black") + 
   coord_cartesian(xlim=c(8.0, 9.1), ylim=c(-0.75,+0.75)) +
   theme_bw() +  theme(legend.justification=c(0,1), legend.position=c(0, 1), 
   legend.background=element_rect(fill="white", color="black"), legend.title=element_blank())
@@ -84,8 +102,9 @@ fig1
 
 What is **not** nice about this graph?
 
-+ new labels
-+ differt order for sex
++ new labels for components
++ new labels for sex
++ different order for sex
 
 # Recode
 
@@ -94,13 +113,15 @@ Change the **label** of factor levels with new factor; could also overwrite the 
 + fct_recode()
 
 ```{r}
-dat %<>% 
+dat <-  
+  dat |> 
   mutate(Component = 
          fct_recode(Test, Endurance = "Run", 
                           Coordination = "Star_r", 
                           Speed = "S20_r",
                           PowerLOW = "SLJ", 
-                          PowerUP = "BPT"))
+                          PowerUP = "BPT"),
+         Sex = fct_recode(Sex, Girls = "female", Boys = "male"))
 dat
 ```
 
@@ -144,7 +165,7 @@ Reverse the order of factor levels
 ## fct_rev()
 
 ```{r}
-dat %<>% mutate(Sex = fct_rev(Sex))
+dat <- dat |>  mutate(Sex = fct_rev(Sex))
 
 # table of means
 t3_AST <- 
@@ -178,10 +199,10 @@ This figure corresponds to Figure 1 in paper.
 
 ```{r}
 levels(dat$Component)
-dat %<>% mutate(Compx = fct_rev(Component))
+dat <- dat |>  mutate(Compx = fct_rev(Component))
 levels(dat$Compx)
 
-dat %<>% mutate(Comp2 = fct_relevel(Component, c("PowerUP","Endurance", "Coordination",  "Speed",  "PowerLOW" ) ))
+dat <- dat |>  mutate(Comp2 = fct_relevel(Component, c("PowerUP","Endurance", "Coordination",  "Speed",  "PowerLOW" ) ))
 levels(dat$Comp2)
 
 t4_AST <- 
@@ -218,6 +239,7 @@ datx <- tibble(f = factor(c("b", "b", "a", "c", "c", "c")))
 datx$f
 fct_inorder(datx$f)
 fct_infreq(datx$f)
+fct_rev(fct_infreq(datx$f))
 
 datx <- datx |> mutate(g = fct_inorder(f), h = fct_infreq(f))
 datx$f
@@ -229,7 +251,7 @@ datx$h
 
 
 ```{r}
-dat %<>% mutate(Comp4 = fct_collapse(Component, 
+dat <- dat |> mutate(Comp4 = fct_collapse(Component, 
                                      'Endurance + PowerUP' = c("Endurance", "PowerUP"), 
                                      'Physical skill' = c("Coordination", "Speed", "PowerLOW"))) 
 levels(dat$Comp4)
@@ -265,9 +287,12 @@ fig6
 ## `fct_reorder()`
 
 ```{r  }
+ix <- sample(1:10000, 5000)
+dat2 <- dat[ix,]
+
 # We could also fct_reorder -- by default small first
-dat$Comp3 <- fct_reorder(dat$Component, dat$Component, length)
-fct_count(dat$Comp3)  # does work!
+dat2$Comp3 <- fct_reorder(dat2$Component, dat2$Component, length)
+fct_count(dat2$Comp3)  # does work!
 
 # also other statistics, e.g., median
 dat %>% group_by(Component) %>% summarise(N=n(), median=median(zScore, na.rm=TRUE))
@@ -299,7 +324,7 @@ fig5
 
 ## fct_reorder2
 
-+ `fct_reorder()` reorders levels by their relationship (mean, median) with another variable (see above).
++ `fct_reorder()` reorders levels by their relationship (length, mean, median) with another variable (see above).
 + `fct_reorder2()` reorders levels by their final values when plotted with two other variables.
 
 This corresponds (roughly) to Figure 4: Cohort x Component in paper, but tests appear in order of mean `zScore` of last cohort (2019). The example illustrates how this can be done in the `ggplot()` command.
@@ -335,7 +360,7 @@ fig8 <-
   scale_shape_manual(values=c(16,21)) +
   scale_x_continuous("Cohort", breaks=seq(2011, 2019)) +
   scale_y_continuous("z-score [± SD]") + 
-  geom_errorbar(data=t_CT, aes(ymax=zScore+CI, ymin=zScore-CI), width=0.05) +
+#  geom_errorbar(data=t_CT, aes(ymax=zScore+CI, ymin=zScore-CI), width=0.05) +
   scale_colour_manual("Component", values=c("red", "orange", "green", "blue", "violet")) +
   geom_hline(aes(yintercept=0)) + 
   coord_cartesian(ylim=c(-0.2,+0.2)) +

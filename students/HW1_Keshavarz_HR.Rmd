@@ -40,7 +40,7 @@ The questionnaire items use a 5-level Likert scale from 1 to 5 (strongly disagre
     + meaningful work (q43 to q45)
     + interesting work (q46 to q49)
 
-. Moreover, the questionnaire on organizational happiness suggests that if the staff think of their workplace as a learning environment in which they can positively participate in a meaningful interesting job, organizational happiness will take place.
+Moreover, the questionnaire on organizational happiness suggests that if the staff think of their workplace as a learning environment in which they can positively participate in a meaningful interesting job, organizational happiness will take place.
 # Setup
 
 ```{r}
@@ -199,12 +199,122 @@ dat_w <- dat |> select(Subj, Gender, experience:wrk)
 
 From the wide format, we may need to go to the long format.
 
+# Theoretical question
 
-# Descriptives and Figures
+1. Does organizational innovation depend on cognitive, affective, and behavioral change attitude?
+2. Does organizational happiness depend on cognitive, affective, and behavioral change attitude?
+3. Are these effects moderated by Gender?
+
+# Method: Multiple regression
+
+##  DV: innovation
+
+### Inferential statistics
+
+```{r}
+m1_inno <- lm(inno ~ 1 + cog + aff + beh, data=dat_w)
+summary(m1_inno)
+
+contrasts(dat_w$Gender) <-  contr.sum(2)
+m2_inno <- lm(inno ~ 1 +  cog + aff + beh + Gender, data=dat_w)
+summary(m2_inno)
+
+m3_inno <- lm(inno ~ 1 + (cog + aff + beh)*Gender, data=dat_w)
+summary(m3_inno)
+
+anova(m1_inno, m2_inno, m3_inno)
+```
+
+###  Visualization 
+
+```{r}
+# cognition
+dat_w |> 
+  ggplot(aes(x=cog, y= inno, group=Gender, color=Gender)) +
+  geom_jitter() + geom_smooth(method="lm") + 
+  scale_color_manual("", values=c("blue", "red")) +
+  scale_y_continuous("Rating of organization innovation",  breaks=1:5) +
+  scale_x_continuous("Attitude to cognitive change",  breaks=1:5) +
+  coord_fixed(ratio=1, xlim=c(1,5.5), ylim=c(1,5.5)) +
+  theme_bw()
+
+# affect
+dat_w |> 
+  ggplot(aes(x=aff, y= inno, group=Gender, color=Gender)) +
+  geom_jitter() + geom_smooth(method="lm") + 
+  scale_color_manual("", values=c("blue", "red")) +
+  scale_y_continuous("Rating of organization innovation", breaks=1:5) +
+  scale_x_continuous("Attitude to affective change", breaks=1:5) +
+  coord_fixed(ratio=1, xlim=c(1,5.5), ylim=c(1,5.5)) +
+  theme_bw()
+
+# behavior
+dat_w |> 
+  ggplot(aes(x=beh, y= inno, group=Gender, color=Gender)) +
+  geom_jitter() + geom_smooth(method="lm") + 
+  scale_y_continuous("Rating of organization innovation", breaks=1:5) +
+  scale_x_continuous("Attitude to behavioral change",  breaks=1:5) +
+  scale_color_manual("", values=c("blue", "red")) +
+  coord_fixed(ratio=1, xlim=c(1,5.5), ylim=c(1,5.5)) +
+  theme_bw()
+
+# combine three plots into a single once  <TO BE DONE>
 
 
-# Inferential statistics (modeling)
+```
 
+## DV: happiness
+
+### Inferential statistics
+
+```{r}
+m1_hppy <- lm(hppy ~ 1 + cog + aff + beh, data=dat_w)
+summary(m1_hppy)
+```
+
+### Visualization
+
+```{r}
+# <TO BE DONE>
+
+```
+
+
+# Method: Linear Mixed Model
+
+```{r}
+dat_l <- 
+  dat_w |> 
+  pivot_longer(cog:beh, names_to = "Attitude", values_to = "rating") |> 
+  mutate(Attitude = factor(Attitude, levels=c("cog", "aff", "beh")),
+         rating_c = rating - 3)
+```
+
+## Visualization
+
+```{r}
+dat_l |> 
+  ggplot(aes(x=rating_c, y=inno, group=Gender, color=Gender)) +
+  geom_jitter() + 
+  geom_smooth() +
+  facet_grid(. ~ Attitude) +
+  theme_bw()
+```
+
+Improve this graph!
+
++ labels of axes
++ labels of facets
++ position of legend
++ remove legend header
++ color or points and line
++ liner regression (order 1, 2, 3)
+
+## Inferential statistics
+
+```{r}
+
+```
 
 # Appendix
 
