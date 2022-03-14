@@ -46,6 +46,13 @@ Moreover, the questionnaire on organizational happiness suggests that if the sta
 ```{r}
 library(tidyverse)
 library(summarytools) # dfSummary(), descr(), freq()
+library(psych)
+library(performance)
+
+# packages with additional graphics options
+library(car)
+library(GGally)
+library(cowplot)
 ```
 
 # Read the data
@@ -81,7 +88,6 @@ You need to `install.packages("psych")` for good scale statistics and more.
 +  with  `aocq$scores`  we extract the subjects' scores (and can store them in `dat`)
 
 ```{r}
-library(psych)
 aocq <- alpha(dat[,1:18], check.keys=TRUE)
 aocq
 
@@ -91,9 +97,27 @@ dat$aocq <- aocq$scores
 
 We need to know the content of questions. It looks like `q06` and `q07` need to be inverted. Aside from this, the scale statistics look very good. 
 
+**Cognitive**
++ q01: In general, change would reduce my ability to have control over what happens at work.
++ q02: I usually resist new thoughts and ideas.
++ q03: I do not like change.
++ q04: Change causes my failure.
++ q05: Most workplace changes bother me.
++ q06: Usually, I use new thoughts and ideas with hesitation.
+
+**Affective**
++ q07: Change is useful for the organization.
++ q08: Most of my colleagues benefit from change.
++ q09: I do everything I can to support the change.
++ q10: Normally, I support new thoughts and ideas.
++ q11: I have found that most of the changes are pleasant.
++ q12: Normally, I have benefited from the change.
+
 #### Cognition
 
 ```{r}
+cor(dat[ ,1:6])
+
 cog <- psych::alpha(dat[ ,1:6], check.keys=TRUE)
 cog
 dat$cog <- cog$scores
@@ -104,6 +128,8 @@ Looking good!
 #### Affect
 
 ```{r}
+cor(dat[ ,7:12])
+
 aff <- psych::alpha(dat[ ,7:12], check.keys=TRUE)
 aff
 dat$aff <- aff$scores
@@ -194,7 +220,12 @@ dat$wrk <- wrk$scores
 Often we don't really need item level information anymore. Here we simple extract the subject information and the scale and subscale scores into the dataframe we are going to use fpr descriptive statistics in reports, figures, and as input to some inferential statistics.
 
 ```{r}
-dat_w <- dat |> select(Subj, Gender, experience:wrk)
+dat_w <- 
+  dat |> 
+  select(Subj, Gender, experience:wrk) |> 
+  mutate(cog_c = cog - 3,
+         aff_c = aff - 3,
+         beh_c = beh - 3)
 ```
 
 From the wide format, we may need to go to the long format.
@@ -205,13 +236,14 @@ From the wide format, we may need to go to the long format.
 2. Does organizational happiness depend on cognitive, affective, and behavioral change attitude?
 3. Are these effects moderated by Gender?
 
-# Method: Multiple regression
+# Method 1: Multiple regression
 
 ##  DV: innovation
 
 ### Inferential statistics
 
 ```{r}
+
 m1_inno <- lm(inno ~ 1 + cog + aff + beh, data=dat_w)
 summary(m1_inno)
 
@@ -229,7 +261,8 @@ anova(m1_inno, m2_inno, m3_inno)
 
 ```{r}
 # cognition
-dat_w |> 
+p_cog <- 
+  dat_w |> 
   ggplot(aes(x=cog, y= inno, group=Gender, color=Gender)) +
   geom_jitter() + geom_smooth(method="lm") + 
   scale_color_manual("", values=c("blue", "red")) +
@@ -237,9 +270,14 @@ dat_w |>
   scale_x_continuous("Attitude to cognitive change",  breaks=1:5) +
   coord_fixed(ratio=1, xlim=c(1,5.5), ylim=c(1,5.5)) +
   theme_bw()
+p_cog
+
+m3_inno_cog <- lm(inno ~ 1 + cog*Gender, data=dat_w)
+summary(m3_inno_cog)
 
 # affect
-dat_w |> 
+p_aff <- 
+  dat_w |> 
   ggplot(aes(x=aff, y= inno, group=Gender, color=Gender)) +
   geom_jitter() + geom_smooth(method="lm") + 
   scale_color_manual("", values=c("blue", "red")) +
@@ -247,9 +285,14 @@ dat_w |>
   scale_x_continuous("Attitude to affective change", breaks=1:5) +
   coord_fixed(ratio=1, xlim=c(1,5.5), ylim=c(1,5.5)) +
   theme_bw()
+p_aff
+
+m3_inno_aff <- lm(inno ~ 1 + aff*Gender, data=dat_w)
+summary(m3_inno_aff)
 
 # behavior
-dat_w |> 
+p_beh <- 
+  dat_w |> 
   ggplot(aes(x=beh, y= inno, group=Gender, color=Gender)) +
   geom_jitter() + geom_smooth(method="lm") + 
   scale_y_continuous("Rating of organization innovation", breaks=1:5) +
@@ -257,30 +300,155 @@ dat_w |>
   scale_color_manual("", values=c("blue", "red")) +
   coord_fixed(ratio=1, xlim=c(1,5.5), ylim=c(1,5.5)) +
   theme_bw()
+p_beh
 
-# combine three plots into a single once  <TO BE DONE>
-
-
+m3_inno_beh <- lm(inno ~ 1 + beh*Gender, data=dat_w)
+summary(m3_inno_beh)
 ```
 
-## DV: happiness
+The profile of significant effects in `m3_inno`  does not agree with the zero-order relations of these variables, that is when they are assessed independently of each other. This means when the three IVs are in the model they "interfere" with each other. They generate what is known as a suppressor constellation. Suppressor constellations often suggest that there may be an interaction lurking in the data. 
 
-### Inferential statistics
+## Model explorations
+
+### Visualizations
+
+Let's look at the three plots at the same time. 
 
 ```{r}
-m1_hppy <- lm(hppy ~ 1 + cog + aff + beh, data=dat_w)
-summary(m1_hppy)
+dat_l |> 
+  ggplot(aes(x=rating, y=inno, group=Gender, color=Gender)) +
+  geom_jitter() + 
+  geom_smooth(method="lm") +
+  facet_grid(. ~ Attitude) +
+  scale_color_manual("", values=c("blue", "red")) +
+  theme_bw()
 ```
 
-### Visualization
+Let's look at scatterplot matrices
 
 ```{r}
-# <TO BE DONE>
+dat_w |> 
+  ggscatmat(columns = c("inno", "cog", "aff", "beh"), color = "Gender", alpha = 1) + 
+  theme(legend.position="top", legend.title=element_blank()) +
+  guides(colour = guide_legend(override.aes = list(size=3))) +
+  scale_color_manual("", values=c("blue", "red")) + 
+  theme_bw() + theme(legend.position = "top")
 
+# an alternative with ellipses
+scatterplotMatrix(~  inno + cog + aff + beh  | Gender, data=dat_w, 
+                    smooth=FALSE, regLine=FALSE, ellipse=TRUE, legend = FALSE )
 ```
 
 
-# Method: Linear Mixed Model
+### Residuals
+
+```{r}
+check_model(m3_inno)
+
+
+m3b_inno <- lm(inno ~ 1 + (cog_c + aff_c + beh_c)*Gender, data=dat_w)
+summary(m3b_inno)
+
+check_model(m3b_inno)
+```
+
+### Add interaction terms
+
+```{r}
+m4_inno <- lm(inno ~ 1 + cog_c + aff_c*beh_c, data=dat_w)
+summary(m4_inno)
+
+anova(m1_inno, m4_inno)
+
+m5_inno <- lm(inno ~ 1 + cog_c + aff_c*(beh_c + Gender), 
+              data=dat_w)
+summary(m5_inno)
+
+anova(m1_inno, m4_inno, m5_inno)
+```
+
+With the interaction between `aff` and `beh` in the model, `Gender` is no longer significant. Perhaps we have been looking at the wrong model.  
+
+### Interaction of `aff` x `beh`
+
+Let's visualize the `aff` x `beh` interaction.  
+
+When two continuous variables interact, one option is to turn one of them into a factor and put it in the `group`. We convert all of three variables into factors.
+
+There are three options
+
++ we let the program make groups with approx. equal range: `cut_interval()`
++ we let the program make groups with approx. equal n's of obs: `cut_number()`
+
+Looking at the figure, it seems there are very few values below 3. Let's got with `cut_nunber()`.
+
+```{r}
+dat_w$CogN = cut_number(dat_w$cog, n=3)
+dat_w$AffN = cut_number(dat_w$aff, n=3)
+dat_w$BehN = cut_number(dat_w$beh, n=3)
+dat_w$BehI = cut_interval(dat_w$beh, n=3)
+
+# checks
+dat_w |> group_by(BehN) |> summarise(N=n(), aff_M=mean(aff))
+dat_w |> group_by(BehI) |> summarise(N=n(), aff_M=mean(aff))
+```
+
+And the graph:
+
+```{r}
+dat_w |> 
+  ggplot(aes(x=aff, y=inno, group=BehN, color=BehN)) +
+  geom_jitter() + geom_smooth(method="lm") + 
+  scale_color_manual("Beh Bins", values = c("blue", "orange", "red")) +
+  facet_grid(. ~ Gender) +
+  theme_bw()
+
+dat_w |> 
+  ggplot(aes(x=beh, y=inno, group=AffN, color=AffN)) +
+  geom_jitter() + geom_smooth(method="lm") + 
+  scale_color_manual("Aff Bins", values = c("blue", "orange", "red")) +
+  facet_grid(. ~ Gender) +
+  theme_bw()
+
+dat_w |> group_by(AffN, Gender) |> summarise(N=n(), aff_M=mean(aff))
+
+# other variables?
+dat_w |> group_by(BehN, Gender) |> summarise(N=n(), aff_M=mean(aff)) # ok
+dat_w |> group_by(CogN, Gender) |> summarise(N=n(), aff_M=mean(aff)) # ok
+```
+
+Solution: Don't include `aff` now. Try to understand why male and female responded so differently.  Start over.
+
+
+```{r}
+m6_inno <- lm(inno ~ 1 + cog_c + beh_c, data=dat_w)
+summary(m6_inno)
+
+m7_inno <- lm(inno ~ 1 + (cog_c + beh_c)*Gender, data=dat_w)
+summary(m8a_inno)
+
+anova(m6_inno, m7_inno)
+
+m8_inno <- lm(inno ~ 1 + cog_c*beh_c, data=dat_w)
+summary(m8_inno)
+
+anova(m6_inno,  m8b_inno)
+```
+
+
+
+```{r}
+dat_w |> 
+  ggplot(aes(x=beh, y=inno, group=CogN, color=CogN)) +
+  geom_jitter() + geom_smooth(method="lm") + 
+  scale_color_manual("Cog Bins", values = c("blue", "orange", "red")) +
+  theme_bw()
+
+check_model(m8_inno)
+check_model(m6_inno)
+```
+
+# Method 2: Linear Mixed Model
 
 ```{r}
 dat_l <- 
@@ -296,7 +464,7 @@ dat_l <-
 dat_l |> 
   ggplot(aes(x=rating_c, y=inno, group=Gender, color=Gender)) +
   geom_jitter() + 
-  geom_smooth() +
+  geom_smooth(method="lm", formula=y~1+poly(x,3)) +
   facet_grid(. ~ Attitude) +
   theme_bw()
 ```
@@ -308,13 +476,7 @@ Improve this graph!
 + position of legend
 + remove legend header
 + color or points and line
-+ liner regression (order 1, 2, 3)
-
-## Inferential statistics
-
-```{r}
-
-```
++ linear regression (order 1, 2, 3)
 
 # Appendix
 
