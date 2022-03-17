@@ -37,7 +37,7 @@ set.seed(42)
 dat_run <- 
   readRDS("data/EmotikonSubset.rds") %>%
   mutate(Sex = fct_recode(Sex, Girls="female", Boys="male"),
-         AgeBin = cut( age, breaks = c(7.8, seq(8.2, 9.0, 0.25), 9.3)), 
+         AgeBin = cut(age, breaks = c(7.8, seq(8.2, 9.0, 0.25), 9.3)), 
          cohort = as.numeric(as.character(Cohort))) |> 
   group_by(Test) %>% 
   filter(Test=="Run") |>
@@ -53,8 +53,8 @@ dat_run |>
 dat_run |> 
   ggplot(aes(x=age, y=score, group=Sex, color=Sex)) +
   geom_jitter() +
-#  geom_smooth(method="lm") +
-  geom_smooth(linetype="dashed") +
+  geom_smooth(method="lm") +
+#  geom_smooth(linetype="dashed") +
   scale_colour_manual("", values=c("red", "blue")) +
   scale_x_continuous("Age [year]", breaks=seq(7.75,9.25,.25)) +
   scale_y_continuous("Six-minute run [m]", breaks=seq(500,1500,100)) +
@@ -62,7 +62,6 @@ dat_run |>
   theme_bw() + theme(legend.position = "top") 
 
 dat_run |> 
-  mutate(cohort = as.numeric(as.character(Cohort))) |> 
   ggplot(aes(x=cohort, y=score, group=Sex, color=Sex)) +
   geom_jitter() +
 #  geom_smooth(method="lm") +
@@ -77,19 +76,13 @@ dat_run |>
 ### Multiple regression
 
 ```{r}
-m1_run <-  lm(score ~ 1 + age + Sex + cohort, data=dat_run)
+m1_run <-  lm(score ~ 1 + Sex + age + cohort, data=dat_run)
 summary(m1_run)
 
 check_model(m1_run)
 boxCox(m1_run)
 ```
 
-Tukey's ladder of power transformations for lambdas:
-+ lambda = -1, then 1/score  
-+ lambda = -1/2, then 1/sqrt(score)
-+ [lambda = 0, then log(score)]  -- special case because   sccore^0 = 1 
-+ lambda = +1/2, then sqrt(score)
-+ lambda = 1, then no transformation
 
 ## Analysis of Star run: Need for reciprocal transformation
 
@@ -113,7 +106,16 @@ summary(m1_star)
 
 check_model(m1_star)
 boxCox(m1_star)
+```
 
+Tukey's ladder of power transformations for lambdas:
++ lambda = -1, then 1/score  
++ lambda = -1/2, then 1/sqrt(score)
++ [lambda = 0, then log(score)]  -- special case because   sccore^0 = 1 
++ lambda = +1/2, then sqrt(score)
++ lambda = 1, then no transformation
+
+```{r}
 dat_star$score_r = 51/dat_star$score
 
 m1_star_r <-  lm(score_r ~ 1 + age + Sex + cohort, data=dat_star)
@@ -123,7 +125,7 @@ check_model(m1_star_r)
 boxCox(m1_star_r)
 ```
 
-# Contrasts and covariates
+# Factors and covariates
 
 The following analysis assume a balanced design, that is equal number of children in each of the Sex x Cohort cells of the design.
 
@@ -133,7 +135,7 @@ Contrasts are needed for factors.
 
 ### Treatment coding
 
-If you don't specify a contrast, R will specify a treatment contrast for you:
+If you don't specify a contrast, R will specify a treatment contrast for you. This is default.
 
 ```
 contrasts(dat_run$Sex) <- contr.treatment(2)
@@ -145,6 +147,7 @@ contrasts(dat_run$Sex)
 m2_run_trt <-  lm(score ~ 1 +  Sex, data=dat_run)
 summary(m2_run_trt)
 
+options(signif=3)
 (tbl_sex <- dat_run |> group_by(Sex) |> summarise(N=n(), M=mean(score), SD=sd(score)))
 (Boys_Girls <- tbl_sex$M[2] - tbl_sex$M[1])   # Boys - girls
 (GrandMean <- mean(dat_run$score))
@@ -270,8 +273,10 @@ Thus, it was a bit of waste to spend eight degrees of freedom for Cohort. We can
 
 The most common contrasts (contr.sum, contr.sdif, contr.treatment) have been coded. If you want to set up your own comparisons, see:
 
-+ Schad et al. 
-+ Rabe et al. 
++ Schad et al. (2020)
++ Rabe et al. (2020)
+
+Both papers are in literature.
 
 # Appendix
 
