@@ -1,5 +1,5 @@
 ---
-title: "Contrasts: hypr package"
+title: "Transformations and Constrasts in Multiple Regression"
 author: "Reinhold Kliegl"
 date: "2022-03-017 (updated: `r Sys.time()`)"
 output:
@@ -15,9 +15,6 @@ editor_options:
 
 # Setup
 
-+ Read a subset of EMOTIKON data  ()
-+ Compute zscores for each test
-
 ```{r}
 library(tidyverse)
 library(car)
@@ -31,6 +28,8 @@ library(hypr)
 ## Analyses of six-minute run: No need for transformation
 
 ### Graph
+
+Why 42? [The Answer to the Ultimate Question of Life, the Universe, and Everything is 42](https://en.wikipedia.org/wiki/Phrases_from_The_Hitchhiker%27s_Guide_to_the_Galaxy#The_Answer_to_the_Ultimate_Question_of_Life,_the_Universe,_and_Everything_is_42)
 
 ```{r}
 set.seed(42)
@@ -58,17 +57,19 @@ dat_run |>
   scale_colour_manual("", values=c("red", "blue")) +
   scale_x_continuous("Age [year]", breaks=seq(7.75,9.25,.25)) +
   scale_y_continuous("Six-minute run [m]", breaks=seq(500,1500,100)) +
+  geom_hline(yintercept=1008.11) +
   coord_cartesian(xlim=c(8, 9.1), ylim=c(500,1500)) +
   theme_bw() + theme(legend.position = "top") 
 
 dat_run |> 
   ggplot(aes(x=cohort, y=score, group=Sex, color=Sex)) +
   geom_jitter() +
-#  geom_smooth(method="lm") +
-  geom_smooth(linetype="dashed") +
+  geom_smooth(method="lm") +
+#  geom_smooth(linetype="dashed") +
   scale_colour_manual("", values=c("red", "blue")) +
   scale_x_continuous("Cohort", breaks=seq(2011,2019)) +
   scale_y_continuous("Six-minute run [m]", breaks=seq(500,1500,100)) +
+  geom_hline(yintercept=1008.11) +
   coord_cartesian(xlim=c(2011, 2019), ylim=c(500,1500)) +
   theme_bw() + theme(legend.position = "top") 
 ```
@@ -83,8 +84,7 @@ check_model(m1_run)
 boxCox(m1_run)
 ```
 
-
-## Analysis of Star run: Need for reciprocal transformation
+## Analysis of _Star_ run: Need for reciprocal transformation
 
 ```{r}
 set.seed(42)
@@ -129,13 +129,13 @@ boxCox(m1_star_r)
 
 The following analysis assume a balanced design, that is equal number of children in each of the Sex x Cohort cells of the design.
 
-Contrasts are needed for factors.  
+Contrasts are needed for factors; some form of centering is often needed for covariates.
 
-## Factor Sex 
+## Factor _Sex_ 
 
 ### Treatment coding
 
-If you don't specify a contrast, R will specify a treatment contrast for you. This is default.
+If you don't specify a contrast, R will specify a treatment contrast for you. This is the default setting.
 
 ```
 contrasts(dat_run$Sex) <- contr.treatment(2)
@@ -147,14 +147,13 @@ contrasts(dat_run$Sex)
 m2_run_trt <-  lm(score ~ 1 +  Sex, data=dat_run)
 summary(m2_run_trt)
 
-options(signif=3)
 (tbl_sex <- dat_run |> group_by(Sex) |> summarise(N=n(), M=mean(score), SD=sd(score)))
 (Boys_Girls <- tbl_sex$M[2] - tbl_sex$M[1])   # Boys - girls
 (GrandMean <- mean(dat_run$score))
 ```
 
-+ (Intercept) is mean of group with level 0:  Girls.
-+ Sex2 is difference of Boys' and Girls' means.
++ `(Intercept)` is mean of group with level 0:  Girls.
++ `Sex2` is difference of Boys' and Girls' means.
 
 *Note*: When the data are balanced, you don't need multiple regression (MR) to estimate effects; you need MR to estimate SEs of effects, that is to test the significance of the difference.
 
@@ -171,16 +170,15 @@ GrandMean
 (DistFromGM <- (tbl_sex$M[2] - tbl_sex$M[1])/2)   # Boys
 ```
 
-+ (Intercept) is Grand Mean
-+ Sex1 is distance of Boys from Grand Mean (same absolute difference for Girls).
++ `(Intercept)` is Grand Mean
++ `Sex1` is distance of Boys from Grand Mean (same absolute difference for Girls).
 
-### Sequential difference coding
+### Sequential difference coding ("sliding contrast")
 
 ```{r}
+contrasts(dat_run$Sex) <- MASS::contr.sdif(2)  # contr.sdif() "lives" in package MASS
 
-contrasts(dat_run$Sex) <- MASS::contr.sdif(2)  # pcontr.sdif() "lives" in package MASS
-
-m2_run_sqd <-  lm(score ~ 1 +  Sex, data=dat_run)
+m2_run_sqd <-  lm(score ~ 1 + Sex, data=dat_run)
 summary(m2_run_sqd)
 
 tbl_sex 
@@ -188,19 +186,20 @@ GrandMean
 (Boys_Girls <- tbl_sex$M[2] - tbl_sex$M[1])   # Boys - girls
 ```
 
-+ (Intercept) is Grand Mean
-+ Sex2-1 is difference of Boys' and Girls' means.
++ `(Intercept)` is Grand Mean
++ `Sex2-1` is difference of Boys' and Girls' means.
 
-## Covariate "cohort"
+## Covariate _cohort_
 
-Now we model the effect of the covariate cohort. 
+Now we model the effect of the covariate _cohort_. 
 
 ```{r}
+contrasts(dat_run$Sex) <- MASS::contr.sdif(2)
 m3_run <-  lm(score ~ 1 + cohort, data=dat_run)
 summary(m3_run)
 ```
 
-The (Intercept) estimate looks very different. It is the GrandMean when cohort has the value 0, that is around the first Christmas in history. This is not very plausible, or course. 
+The `(Intercept)` estimate looks very different. It is the Grand Mean when cohort has the value 0, that is around the first Christmas in history. This is not very plausible, or course. 
 
 ```{r}
 dat_run |> 
@@ -211,26 +210,28 @@ dat_run |>
   theme_bw()
 ```
 
-That's why it is good idea to center covariates at a meaningful value.
+That's why it is a good idea to center covariates at a meaningful value.
 
 ```{r}
+contrasts(dat_run$Sex) <- MASS::contr.sdif(2)
 dat_run$cohort_c <- dat_run$cohort - 2015
+
 m3b_run <-  lm(score ~ 1 + cohort_c, data=dat_run)
 summary(m3b_run)
 
-# recaling does not change the goodness of fit
+# rescaling does not change the goodness of fit
 anova(m3_run, m3b_run)
 ```
 
-+ (Intercept):  GM in year 2015
-+ cohort_c:  change in dependent variable when covariate is increase by 1 unit (year in this example)
++ `(Intercept)`:  GM in year 2015 is equal to the GM of all the data because I have balanced set of data and because 2015 is in the middle of cohort.
++ `cohort_c`:  change in dependent variable when covariate is increase by 1 unit (year in this example)
 
-## Factor "Cohort"
+## Factor _Cohort_
 
 ### Treatment coding
 
 ```{r}
-contrasts(dat_run$Cohort) <- contr.treatment(9)
+contrasts(dat_run$Cohort) <- contr.treatment(9, base=1)
 
 m4_run_trt <-  lm(score ~ 1 + Cohort, data=dat_run)
 summary(m4_run_trt)
@@ -238,10 +239,12 @@ summary(m4_run_trt)
 (tbl_chrt <- dat_run |> group_by(Cohort) |> summarise(N=n(), M=mean(score), SD=sd(score)))
 ```
 
-+ (Intercept) is mean at first level (i.e., 2011 in the example)
-+ Cohort2 is  2012 - 2011
-+ Cohort3 is  2013 - 2011
++ `(Intercept)` is mean at first level (i.e., 2011 in the example)
++ `Cohort2` is  2012 - 2011
++ `Cohort3` is  2013 - 2011
 + ... 
+
+With the _base_ argument you can set a different level as the reference level.
 
 ### Sequential difference coding
 
@@ -255,28 +258,28 @@ GrandMean
 tbl_chrt
 ```
 
-+ (Intercept) is Grand Mean
-+ Cohort2 is 2012 - 2011
-+ Cohort3 is 2013 - 2012
-+ Cohort4 is 2014 - 2013
++ `(Intercept)` is Grand Mean
++ `Cohort2` is 2012 - 2011
++ `Cohort3` is 2013 - 2012
++ `Cohort4` is 2014 - 2013
 + ...
 
-It is interesting to compare m3_run and m4_run_trt/sqd
+It is interesting to compare `m3_run` and `m4_run_sqd`.
 
 ```{r}
 anova(m3_run, m4_run_sqd)
 ```
 
-Thus, it was a bit of waste to spend eight degrees of freedom for Cohort. We can get the same goodness of fit with 1 df for cohort.
+Thus, it was a bit of waste to spend eight degrees of freedom for _Cohort_. We can get the same goodness of fit with 1 df for cohort.
 
 ### Hypothesis coding
 
-The most common contrasts (contr.sum, contr.sdif, contr.treatment) have been coded. If you want to set up your own comparisons, see:
+The most common contrasts [`contr.sum()`, `MASS::contr.sdif()`, `contr.treatment()`] are available as R functions. If you want to set up your own contrast, not covered by the pre-programmed ones, see:
 
-+ Schad et al. (2020)
-+ Rabe et al. (2020)
++ [Schad et al. (2020)]()
++ [Rabe et al. (2020)]()
 
-Both papers are in literature.
+Both papers are also in the _DSSS/literature_ folder.
 
 # Appendix
 
