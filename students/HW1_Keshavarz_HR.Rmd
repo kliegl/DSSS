@@ -69,11 +69,15 @@ glimpse(data)
 
 ## Basics
 
+Items q06 and q07 were reversed!
+
 ```{r}
 dat <-
   data |> 
   mutate(Subj=as_factor(paste0("S", str_pad(1:348, width=3, side="left", pad="0"))),
-         Gender = factor(Gender, levels=c(1,2), labels=c("male", "female"))) |> 
+         Gender = factor(Gender, levels=c(1,2), labels=c("male", "female")),
+         q06 = 6 - q06,
+         q07 = 6 - q07) |> 
   relocate(Gender:experience, .after=Subj) 
 ```
 
@@ -103,7 +107,7 @@ We need to know the content of questions. It looks like `q06` and `q07` need to 
 + q03: I do not like change.
 + q04: Change causes my failure.
 + q05: Most workplace changes bother me.
-+ q06: Usually, I use new thoughts and ideas with hesitation.
++ q06: I welcome changes
 
 **Affective**
 + q07: Change is useful for the organization.
@@ -118,6 +122,10 @@ We need to know the content of questions. It looks like `q06` and `q07` need to 
 ```{r}
 cor(dat[ ,1:6])
 
+
+
+cor(dat[ , c(1:5, 65)])
+
 cog <- psych::alpha(dat[ ,1:6], check.keys=TRUE)
 cog
 dat$cog <- cog$scores
@@ -129,6 +137,10 @@ Looking good!
 
 ```{r}
 cor(dat[ ,7:12])
+
+dat$q07b <- 6 - dat$q07
+
+cor(dat[ , c(66, 8:12)])
 
 aff <- psych::alpha(dat[ ,7:12], check.keys=TRUE)
 aff
@@ -360,7 +372,7 @@ summary(m4_inno)
 
 anova(m1_inno, m4_inno)
 
-m5_inno <- lm(inno ~ 1 + cog_c + aff_c*(beh_c + Gender), 
+m5_inno <- lm(inno ~ 1 + cog_c + aff_c*beh_c + aff_c*Gender, 
               data=dat_w)
 summary(m5_inno)
 
@@ -425,14 +437,14 @@ m6_inno <- lm(inno ~ 1 + cog_c + beh_c, data=dat_w)
 summary(m6_inno)
 
 m7_inno <- lm(inno ~ 1 + (cog_c + beh_c)*Gender, data=dat_w)
-summary(m8a_inno)
+summary(m7_inno)
 
 anova(m6_inno, m7_inno)
 
 m8_inno <- lm(inno ~ 1 + cog_c*beh_c, data=dat_w)
 summary(m8_inno)
 
-anova(m6_inno,  m8b_inno)
+anova(m6_inno,  m8_inno)
 ```
 
 
@@ -454,6 +466,7 @@ check_model(m6_inno)
 dat_l <- 
   dat_w |> 
   pivot_longer(cog:beh, names_to = "Attitude", values_to = "rating") |> 
+  select(Subj, Gender, Attitude, rating, inno) |> 
   mutate(Attitude = factor(Attitude, levels=c("cog", "aff", "beh")),
          rating_c = rating - 3)
 ```
@@ -462,16 +475,22 @@ dat_l <-
 
 ```{r}
 dat_l |> 
-  ggplot(aes(x=rating_c, y=inno, group=Gender, color=Gender)) +
+  mutate(Attitude = fct_recode(Attitude, Cognition = "cog", Affect = "aff", Behavior = "beh" ),
+         Gender = fct_rev(Gender)) |>
+  ggplot(aes(x=rating, y=inno, group=Gender, color=Gender)) +
   geom_jitter() + 
-  geom_smooth(method="lm", formula=y~1+poly(x,3)) +
+  geom_smooth(method="lm", formula=y ~ 1 + poly(x,1)) +
   facet_grid(. ~ Attitude) +
+  scale_x_continuous("Rating",  breaks=1:5) +
+  scale_y_continuous("Innovation", breaks=1:5) +
+  scale_color_manual("", values=c("red", "blue")) +
+  coord_fixed(ratio=2, xlim=c(1, 5.5), ylim=c(1,5.5)) +
   theme_bw()
 ```
 
 Improve this graph!
 
-+ labels of axes
++ changing properties of axis; labels and range of axes
 + labels of facets
 + position of legend
 + remove legend header
