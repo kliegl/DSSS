@@ -1,2 +1,0 @@
-# Emotikon_ls
-Various reanalyses and new analyses relating to and using the data from Golle et al. (2015). Physical Fitness Percentiles of German Children Aged 9–12 Years: Findings from a Longitudinal Study. _PLoS ONE, 10,_ 11 (doi:10.1371/journal.pone.0142393).
