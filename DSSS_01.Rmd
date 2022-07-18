@@ -27,7 +27,7 @@ editor_options:
 
 ## Variables
 
-< Dictionary of variables >dasflasjemfrklwqejrtoqwjklöarjäoakwerlÖQWE
+< Dictionary of variables >
 
 # Setup
 
