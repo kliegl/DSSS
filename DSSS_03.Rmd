@@ -1,7 +1,7 @@
 ---
 title: "DSSS-03: Tidyverse Commands"
 author: "Reinhold Kliegl"
-date: "2022-02-28 (updated: `r Sys.Date()`)"
+date: "2022-07-18 (updated: `r Sys.Date()`)"
 output:
   html_document:
     number_sections: yes
@@ -25,25 +25,16 @@ library(summarytools) # dfSummary(), descr(), freq()
 
 # Read data 
 
-We use Anastasia's data
+We use Reinhold Kliegl's data.
 
 ```{r}
-data <- read.csv("students/data/Yanechko_1_Anime.csv")
-
-dat <- 
-  data %>% 
-  as_tibble() |>  
-  filter(Rank >= 150) %>%
-  select("Rating", "Episodes", "Type")
+dat <- read.csv("participants/Kliegl.csv")
 ```
 
 # Preprocessing
 
 ```{r}
-dat$Type <- factor(dat$Type)
-levels(dat$Type)[1:8] <- c("DVD", "Movie", "Music", "Other", "OVA", "TV", "TV_Sp", "Web")
 
-dat$Type <- factor(dat$Type, levels=c("TV", "Movie", "Web", "OVA", "Music", "TV_Sp", "DVD", "Other"))
 ```
 
 
@@ -78,26 +69,7 @@ Vocabulary -- is about 10 commands
     
 
 ```{r}
-dat_TV <-  dat |> filter(Type=="TV")
-#dat_TV_wrong <-  dat |> filter(Type=="TV ")
 
-dat2a <- dat |> filter(Type %in% c("TV", "OVA"))
-dat2b <- dat |> filter(Type=="TV" | Type=="OVA")
-
-dat3 <- dat |> filter(Type =="TV" & Episodes==13)
-
-dat4a <- dat |> filter(is.na(Rating))
-dat4b <- dat |> filter(!is.na(Rating))
-
-dat5 <- dat |> arrange(desc(Type), Episodes)
-
-dat6a <- dat |> relocate(Rating, .after=Type)
-dat6b <- dat6a |> relocate(Type, .before=Episodes)
-
-dat6c <- dat |> dplyr::select(3, 2, 1) # not good style, but fast
-
-dat7 <- dat6b |> mutate(Rating_10 = Rating*10,
-                        Rating_log = log(Rating))
 ```
 
 

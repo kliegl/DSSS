@@ -1,7 +1,7 @@
 ---
 title: "EMOTIKON - Preprocessing demos: forcats package"
 author: "Reinhold Kliegl"
-date: "2022-03-03 (updated: `r Sys.time()`)"
+date: "2022-07-18 (updated: `r Sys.time()`)"
 output:
   html_document:
     number_sections: yes
@@ -299,7 +299,7 @@ dat %>% group_by(Component) %>% summarise(N=n(), median=median(zScore, na.rm=TRU
 dat %>% group_by(Component) %>% summarise(N=n(), mean=mean(zScore, na.rm=TRUE))
 
 t5_AST <- 
-  dat %>%
+  dat2 %>%
   mutate( AgeBins = cut( age, breaks = c(7.8, seq(8.2, 9.2, 0.25), 9.3))) %>% 
   group_by(AgeBins, Sex, Comp3) %>% 
   summarise(N=n(), Age=mean(age),  M=mean(zScore), SD=sd(zScore), 

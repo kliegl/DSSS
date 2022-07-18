@@ -1,0 +1,298 @@
+---
+title: "Introduction to R and RStudio: ANOVA"
+author: "Reinhold Kliegl"
+date: "2022-07-18 (last revised: `r format(Sys.time())`)"
+output: 
+    html_document:
+        toc: yes
+        toc_depth: 2
+        number_sections: yes
+        toc_float: TRUE
+editor_options: 
+  chunk_output_type: console
+---
+
+# Script content
+
++ Uses tidyverse dialect of R with heavy use of forward-pipe operator `%>%` and commands `mutate()`, `group_by()`, `summarise()`; figures are built with the _ggplot2_ package and various extension packages. 
++ Reads the subject x item file, using `vroom()`, replacing `read_csv()`, `read_csv2()`, `read_tsv()`, `read_delim()`,  etc.
++ Checks the data with _summarytools_ functions `freq()`, `descr()`, `stby()`, and `dfSummary()`
++ Aggregates to the subject x factor data frame (input for AoV),
++ Computes table of means and within-subject confidence intervals with `summarySEwithin()`
++ Produces a figure with within-subject error bars 
++ Computes a oneway rmAoV with `aov_4()`
++ Bins the covariate with `quantcut()`, yielding the same number of observations per bin (at the cost of different value ranges)
++ Computes a two-way rmAoV with `aov_4()`
++ Bins the covariate `cut()`, yielding the same range of values (at the cost of different numbers of observations)
++ Computes a two-way rmAoV with `aov_4()`
+
+# Data
+
+Data are from a simulation of simple reaction times from a picture-naming experiment. Fifty subjects name  75 different pictures (items) under four transparency conditions (i.e., 300 trials per subject; total N = 15,000). The grayness of the screen background is randomly sampled from a normal distribution for each trial. The data will also be used later in the summer school.
+
+Variables in file
+
++ Subj : subject id; random factor
++ Item : item id; random factor
++ Trnsp: transparency of item (levels: A = 0%, B = 25%, C = 50 %, D = 75%); 
+         within-subject and within-item fixed factor
++ scrb : screen background (grayness); within-subject and within-item covariate
++ rt   : reaction time, dependent variable
+
+# R basics - `install.packages()` and `library()`
+
+There are two commands one needs to know:
+
++  `install.packages()` retrieves packages of additional commands from the web and _installs_ them permanently in the R library on your computer. This command needs to be carried out only once and you must be connected to the internet. 
++  `library()` fetches a package of additional commands from the R library on your computer and makes them available for the current session. These commands need to be carried out in each working session.
+
+```{r setup, include=TRUE}
+#install.packages(c("tidyverse", "afex", "Rmisc", "gtools", "vroom", "summarytools"))  
+# Comment or delete the above command after installation of packages
+
+knitr::opts_chunk$set(echo = TRUE)
+
+suppressPackageStartupMessages(library(afex))
+library(gtools)
+library(Rmisc )
+library(vroom)
+library(summarytools)
+library(tidyverse)
+```
+
+# Read data from delimited file and inspect them
+
+We read the data and get a few summary statistics. I have looked at two packages recently that look very promising.
+
++ https://www.tidyverse.org/articles/2019/05/vroom-1-0-0/  - very fast and flexible reading of delimited files
++ https://github.com/dcomtois/summarytools                 - "intelligent" summary statistics
+
+## Reading the data
+
+```{r}
+dat <-  vroom("Kliegl.csv", col_types="fffdd")  # note compact declaration of variable types
+```
+
+This package/command is super fast in loading large data. It also supposedly determines delimiters in a data file by itself. And finally, the compact specification of variable types is very good and there are very many options for preprocessing data (e.g., selection of variables, reading multiple files and merging them).
+
++ c: character (not uses in this case)
++ d: double
++ f: factor
+
+The save road is to use the default stuff. For example: 
+
+```{r eval=FALSE}
+dat <-read_csv("Kliegl.csv", 
+      col_types=cols(Subj = col_factor(), Item = col_factor(), Trnsp = col_factor()))
+
+```
+
+
+## Inspection of variables
+
+There are countless options for inspecting and summarizing data. Here is a good overview on the blog [dabbling with data](https://dabblingwithdata.wordpress.com/2018/01/02/my-favourite-r-package-for-summarising-data/). There is also lots of information in the comments section. Give it a try. 
+
+In the following, I use [`summarytools`](https://github.com/dcomtois/summarytools) the first time. I like what I see so far.
+
+### Traditional stuff
+
+```{r results='asis'}
+# from summarytools, add "%>% tb()" for tibble format
+freq(dat$Trnsp)  # other argument: style="rmarkdown"
+
+descr(dat, stats="common", transpose=TRUE)   
+
+stby(data = dat, INDICES=dat$Trnsp, FUN=descr, stats="common", transpose=TRUE)
+```
+
+### A bit more innovative, but ...
+
+The `dfSummary()` command generates very informative overviews. However, it still appears to be under heavy development and you may not get nicely formatted output. A perfect place to waste a lot of time trying to get everything right  ...
+
+```{r results='asis'}
+dfSummary(dat, max.distinct.values = 5, na.col=FALSE, plain.ascii=FALSE, headings=FALSE)
+
+# other arguments to be checked: max.tbl.height = 300, method="render")
+```
+
+This function is very useful for interactive exploration in the RStudio IDE.
+
+```{r eval=FALSE, results='asis'}
+# see Viewer panel
+view(dfSummary(dat))                       
+
+# send to file
+dfSummary(dat, na.col=FALSE, file="st_dat.html", tmp.img.dir = "./img")
+```
+
+# A complete analysis: means, figure, rmAoV
+
+We perform a rmAoV using `Subj` as random factor. This is called the F1-AoV. 
+
+## Aggregate
+
+For each subject we average over the 75 responses in each of the four transparency conditions. 
+
+```{r}
+dat_subj <- 
+  dat |> 
+  group_by(Subj, Trnsp) |> 
+  summarise(N=n(), rt=mean(rt))
+dat_subj
+```
+
+`dat_subj` serves as input for the rmAoV.
+
+## Table and graph of condition means and within-subject standard errors
+
+```{r}
+table <- 
+  summarySEwithin(data=dat_subj, measurevar="rt",
+                  betweenvar=NULL,
+                  withinvars=c("Trnsp"), 
+                  idvar="Subj")
+table
+
+table %>% 
+  ggplot(aes(x=Trnsp, y=rt, group=1)) +
+  geom_point() + geom_line() +
+  geom_errorbar(aes(ymax = rt + ci, ymin = rt - ci), width=.05) +
+  scale_x_discrete("Target transparency", labels=c("0%", "25%", "50%", "75%")) +
+  scale_y_continuous("Reaction time [ms]") + 
+  coord_cartesian(ylim=c(500, 700)) + 
+  theme_classic(base_size=14)
+          
+```
+
+
+## Repeated-measures AoV
+
+```{r}
+aov_4(rt ~ 1 + Trnsp + (1 + Trnsp | Subj), data=dat_subj, return="nice")
+
+# ... aov_4() aggregates the subj x item data
+aov_4(rt ~ 1 + Trnsp + (1 + Trnsp | Subj), data=dat, return="nice")
+```
+
+# Including a covariate
+
+The data include the within-subject covariate screen background (grayness). How can we include it in the analysis? One advantage of LMMs is the seamless integration of factors, covariates, and their interactions. The visualization of interactions is a bit tricky, especially if  more than one covariate is involved.
+
+One option is to convert one of the covariates into factor. In this case, we need to choose the _number of bins_ and the _bin boundaries_. For bin boundaries, we either aim for a similar number of cases in each bin or want the bins to cover a similar range of values. The number of bins, usually between 2 and 5, depends on the number of observations and on which resolution best communicates the result. We illustrate both options. 
+
+**Important note:** We _never_ (ok: rarely) use a binned version of the covariate in the LMM. So the following chunk is a didactic excursion that also allows us to stay in the AoV framework of this script.
+
+## Bins with a similar number of observations
+
+When we convert a variable from a covariate to factor we capitalize the name. The first command shows that
+`quantcut()`  produces a similar number of obs in each bin, but that intervals vary in width; low and high bins are much wider (300) than middle bin (80).
+
+```{r}
+# illustrate binning; try different values for q
+dat %>% 
+  mutate(Scrb_qc=quantcut(scrb, q=3)) %>% 
+  group_by(Scrb_qc, Trnsp) %>% 
+  summarise(N=n(), rt=mean(rt), scrb=mean(scrb))
+
+# generat AoV input for dichotomy factor
+dat_subj2a <- 
+  dat %>% 
+  mutate(Scrb_qc2=quantcut(scrb, q=2, labels=c("low", "high")), 
+         Scrb_qc2=fct_relevel(Scrb_qc2, "high", "low")) %>% 
+  group_by(Subj, Trnsp, Scrb_qc2) %>% 
+  summarise(N=n(), rt=mean(rt), scrb=mean(scrb), min_scrb=min(scrb), max_scrb=max(scrb))
+
+# table for interaction plot
+table_qc2 <- 
+  summarySEwithin(data=dat_subj2a, measurevar="rt",
+                  betweenvar=NULL,
+                  withinvars=c("Trnsp", "Scrb_qc2"), 
+                  idvar="Subj")
+table_qc2
+
+# interaction plot
+table_qc2 %>% 
+  ggplot(aes(x=Trnsp, y=rt, group=Scrb_qc2, color=Scrb_qc2)) +
+  geom_point() + geom_line() +
+  geom_errorbar(aes(ymax = rt + ci, ymin = rt - ci), width=.05) +
+  scale_colour_manual("Grayness of screen", values=c("red", "blue")) +
+  scale_x_discrete("Target transparency", labels=c("0%", "25%", "50%", "75%")) +
+  scale_y_continuous("Reaction time [ms]", 
+                     breaks=seq(500, 700, 25), minor_breaks=seq(500, 700, 5)) + 
+  coord_cartesian(ylim=c(500, 700)) + 
+  theme_bw(base_size=14) + 
+  theme(legend.justification=c(0.01,.99), legend.position=c(0.01,.99),
+                   legend.background = element_blank(),
+                   legend.box.background = element_rect(colour = "white"))
+
+# AoV
+aov_4(rt ~ 1 + Trnsp*Scrb_qc2 + (1 + Trnsp*Scrb_qc2 | Subj), data=dat_subj2a, return="nice")
+```
+
+The interaction is significant. In the summer school we will determine the sources of this interaction with an LMM using the continuous covariate `scrb`.
+
+## Bins with a similar range of values
+
+The first command shows that `cut()` produces a similar range of values for each bin (~200), but that the number of observations in bins are very different; there are fewer observations in the edge bins than in the center bin.
+
+```{r}
+# illustrate binning; try different values for b
+dat %>% 
+  mutate(Scrb_c = cut(scrb, breaks=3)) %>% 
+  group_by(Scrb_c, Trnsp) %>% 
+  summarise(N=n(), rt=mean(rt), scrb=mean(scrb))
+
+# generat AoV input for dichotomy factor
+dat_subj2b <- 
+  dat %>% 
+  mutate(Scrb_c2=cut(scrb, breaks=2, labels=c("low", "high")),
+         Scrb_c2=fct_relevel(Scrb_c2, "high", "low")) %>% 
+  group_by(Subj, Trnsp, Scrb_c2) %>% 
+  summarise(N=n(), rt=mean(rt), scrb=mean(scrb), min_scrb=min(scrb), max_scrb=max(scrb))
+
+# table for interaction plot
+table_c2 <- 
+  summarySEwithin(data=dat_subj2b, measurevar="rt",
+                  betweenvar=NULL,
+                  withinvars=c("Trnsp", "Scrb_c2"), 
+                  idvar="Subj")
+table_c2
+
+# interaction plot
+table_c2 %>% 
+  ggplot(aes(x=Trnsp, y=rt, group=Scrb_c2, color=Scrb_c2)) +
+  geom_point() + geom_line() +
+  geom_errorbar(aes(ymax = rt + ci, ymin = rt - ci), width=.05) +
+  scale_colour_manual("Grayness of screen", values=c("red", "blue")) +
+  scale_x_discrete("Target transparency", labels=c("0%", "25%", "50%", "75%")) +
+  scale_y_continuous("Reaction time [ms]", 
+                     breaks=seq(500, 700, 25), minor_breaks=seq(500, 700, 5)) + 
+  coord_cartesian(ylim=c(500, 700)) + 
+  theme_bw(base_size=14) + 
+  theme(legend.justification=c(0.01,.99), legend.position=c(0.01,.99),
+                   legend.background = element_blank(),
+                   legend.box.background = element_rect(colour = "white"))
+
+# AoV
+aov_4(rt ~ 1 + Trnsp*Scrb_c2 + (1 + Trnsp*Scrb_c2 | Subj), data=dat_subj2b, return="nice")
+```
+
+The two procedures yield very similar results for these data. I usually use `quantcut()`.
+
+# Exercises
+
+## Use `Item` in place of `Subj` as random factor
+
+Carry out the analogous analyses with the random factor `Item`. Do the results differ from the ones reported here for subjects? 
+
+## Adapt for your own data
+
+Carry out analogous analyses for your own data. 
+
+# Appendix
+
+```{r}
+sessionInfo()
+```
+
+

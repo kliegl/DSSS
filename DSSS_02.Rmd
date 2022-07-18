@@ -1,7 +1,7 @@
 ---
-title: "DSSS-02: Reading Students' Data"
+title: "DSSS-02: Reading Participants' Data"
 author: "Reinhold Kliegl"
-date: "2022-02-17 (updated: `r Sys.Date()`)"
+date: "2022-07-18 (updated: `r Sys.Date()`)"
 output:
   html_document:
     number_sections: yes
@@ -24,170 +24,44 @@ library(lubridate)
 library(summarytools) # dfSummary(), descr(), freq()
 ```
 
-# Exploring students' data
+# Exploring participants' data
 
-## Danila Kramarenko
+## Reinhold Kliegl
 
-### Read the data
+### Context
+Simulation of simple reaction times from a picture-naming experiment. Fifty subjects name  75 different pictures (items) under four transparency conditions (i.e., 300 trials per subject; total N = 15,000). The greyness of the screen background is randomly sampled from a normal distribution for each trial. 
 
-```{r}
-datw_dk <- read_csv("data/Kramarenko_1_TSLA.csv")
-datw_dk
-```
+### Issues
+1. Theory-guided contrast specification for four-level factor
+2. Specificatipn of crossed-random factor linear mixed models
+3. Visualization of partial effects of covarite x factor interactions
 
-### A few quick checks
-
-```{r}
-view(dfSummary(datw_dk))
-
-descr(datw_dk, stats="common")  
-descr(datw_dk, stats="fivenum") 
-```
-
-We do not get a statistic for `Date` because the variable is not of type `[numeric]`
-
-### Graph
-
-For an efficient generation of plots we usually need the data in wide format.
-
-```{r}
-dat_dk <- datw_dk |> pivot_longer(2:5, names_to="StockStatistic", values_to="Price")
-dat_dk
-
-dat_dk |> 
-  filter(StockStatistic %in% c("Low", "High") & Date < "2013-01-01") |> 
-  ggplot(aes(x=Date, y=Price, group=StockStatistic, color=StockStatistic)) +
-  geom_smooth() +
-#  geom_point() + geom_line() +
-  scale_x_date("", date_breaks = "1 year", date_minor_breaks= "3 months", date_labels= "%Y-%m") +
-  scale_y_log10("Price") +
-  scale_color_manual("Stock statistic", values=c(  "green", "red")) +
-  theme_bw(base_size=14)
-```
-
-We can do better with a few changes to the above command.
-
-Alternatives
-  + transfoming
-  + smoothing
-  + ...
-  
-  
-For correlations we need to variables to be correlated in the wide format. For example,...  
-    
-```{r}
-cor(datw_dk[, 2:5])
-```
-
-The high correlations are spuriously high due to the change in stocks over years. We could try to remove the overall trend and check the correlations then.
-
-## Victoria Vziatysheva
-
-Participants with media experience rating credibility of true and fake news about hot topics (abortion, LGBTQ, death penalty). Subject number was added as shown in class.
-
-
-```{r}
-datw_vv <- read_xlsx("data/Vziatysheva_1_MEXP.xlsx")
-datw_vv
-```
-
-### A few quick checks
-
-```{r}
-view(dfSummary(datw_vv))
-
-descr(datw_vv, stats="common")  
-freq(datw_vv)
-```
-
-### Graph
-
-```{r}
-
-```
-
-
-## Hamid Keshavarz
+### Variables in file
+    Subj : subject id; random factor
+    Item : item id; random factor
+    Trnsp: transparency of item (levels: A = 100%, B = 75%, C = 50 %, D = 25%); 
+           within-subject and within-item fixed factor
+    scrb : screen background; within-subject and within-item covariate
+    rt   : reaction time, dependent variab
 
 ### Read the data
 
-This is a challenge for me, too. Happy to learn how we deal with this format.
-
 ```{r}
-datw_1_hk <- read.csv("data/Keshavarz_1_Mayer.csv")
-datw_1_hk
-
-# Hm?
-
-datw_2_hk <- read.csv("data/Keshavarz_1_Mayer.csv")
-datw_2_hk
+dat_rk <- read_csv("participants/kliegl.csv")
+dat_rk
 ```
 
 ### A few quick checks
 
 ```{r}
-view(dfSummary(datw_1_hk))
+view(dfSummary(dat_rk))
 
-freq(datw_1_hk)
+descr(dat_rk, stats="common")  
+descr(dat_rk, stats="fivenum") 
 ```
 
-## Bella Mamedova
+## N.N.
 
-```{r}
-datw_bm <- read_xlsx("data/Mamedova_1_GermanCredit.xlsx") 
-datw_bm
-```
-
-### A few quick checks
-
-```{r}
-view(dfSummary(datw_bm))
-
-descr(datw_bm)  
-freq(datw_bm)
-```
-
-### Graph
-
-```{r}
-
-```
-
-# Anastasia Yanechko
-
-```{r}
-datw_ay <- read.csv("data/Yanechko_1_Anime_v2.csv")
-datw_ay
-```
-
-### A few quick checks
-
-```{r}
-view(dfSummary(datw_ay))
-
-descr(datw_ay)  
-freq(datw_ay)
-```
-
-### Graph
-
-```{r}
-
-```
-
-# EMOTIKON - physical fitness 
-
-An example of a relational data base. 
-
-+ Child
-+ School
-+ Community
-
-```{r}
-
-
-
-```
 
 # Appendix
 
