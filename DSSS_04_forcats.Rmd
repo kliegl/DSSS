@@ -13,9 +13,13 @@ editor_options:
   chunk_output_type: console
 ---
 
+# Background
+
+See McNamara & Horton (2017) in /literature. 
+
 # Setup
 
-+ Read a subset of EMOTIKON data  ()
++ Read a subset of EMOTIKON data
 + Compute zscores for each test
 
 ```{r}
