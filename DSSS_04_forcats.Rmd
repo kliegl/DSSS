@@ -377,6 +377,33 @@ fig8
 
 The results show the expected loss for `Endurance` and gain in `Speed`. Of interest are also the curvilinear trends for the other three components, especially `PowerUP`. The differences between components show up as reliable cohort-related VCs. The size of the VC corresponds with the size of the effects shown in the figure. Note the difference in effect size is much smaller than the effect size associated with the age of children within the third grade.
 
+## Reorder in a facet plot conditional on the values in a specific facet
+
+```{r}
+fm1 <- lmer(Reaction ~ Days + (Days|Subject), sleepstudy)
+rr1 <- ranef(fm1)
+dd <- as.data.frame(rr1)
+
+# Default: Subj ordered by "(Intercept)"
+ggplot(dd, aes(y=grp,x=condval)) +
+        geom_point() + facet_wrap(~term,scales="free_x") +
+        geom_errorbarh(aes(xmin=condval -2*condsd,
+                           xmax=condval +2*condsd), height=0) +
+        xlab("Conditional mean") + ylab("Subject") +
+        theme_bw()
+ 
+# Subj ordered by ...
+ord_subj <- dd |> filter(term=="Days") |> arrange(condval) |> pull(grp) 
+
+ggplot(dd, aes(y=factor(grp, levels=ord_subj), x=condval)) +
+      geom_point() + facet_wrap(~term,scales="free_x") +
+      geom_errorbarh(aes(xmin=condval -2*condsd,
+                         xmax=condval +2*condsd), height=0) +
+      xlab("Conditional mean") + ylab("Subject") +
+      theme_bw()
+```
+
+
 # Appendix
 
 ```{r}
