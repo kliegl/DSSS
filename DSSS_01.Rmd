@@ -78,7 +78,7 @@ df2 <- read_xlsx("./data/DSSS_01.xlsx")
 
 ```{r}
 df3 <- 
-  df2 %>% 
+  df2|> 
   mutate(Subj=paste0("S", Subj))
 df3
 

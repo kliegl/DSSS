@@ -28,8 +28,8 @@ library(tidyverse)
 library(magrittr)
 
 dat <- 
-  readRDS("data/EmotikonSubset.rds") %>%
-  group_by(Test) %>% 
+  readRDS("data/EmotikonSubset.rds") |> 
+  group_by(Test)|>
   mutate(zScore = as.numeric(scale(score)))
 
 dat |>
@@ -82,8 +82,8 @@ We need
 # table of means
 t1_AST <- 
   dat %>%
-  mutate(AgeBins = cut( age, breaks = c(7.8, seq(8.2, 9.0, 0.25), 9.3))) %>% 
-  group_by(AgeBins, Sex, Test) %>% 
+  mutate(AgeBins = cut( age, breaks = c(7.8, seq(8.2, 9.0, 0.25), 9.3)))|>
+  group_by(AgeBins, Sex, Test)|>
   summarise(N=n(), Age=mean(age),  M=mean(zScore), SD=sd(zScore), 
             CI=1.96*SD/sqrt(N), .groups="drop") 
 t1_AST
@@ -135,8 +135,8 @@ dat
 # table of means
 t2_AST <- 
   dat %>%
-  mutate( AgeBins = cut( age, breaks = c(7.8, seq(8.2, 9.2, 0.25), 9.3))) %>% 
-  group_by(AgeBins, Sex, Component) %>% 
+  mutate( AgeBins = cut( age, breaks = c(7.8, seq(8.2, 9.2, 0.25), 9.3)))|>
+  group_by(AgeBins, Sex, Component)|>
   summarise(N=n(), Age=mean(age),  M=mean(zScore), SD=sd(zScore), 
             CI=1.96*SD/sqrt(N), .groups="drop") 
 t2_AST
@@ -174,8 +174,8 @@ dat <- dat |>  mutate(Sex = fct_rev(Sex))
 # table of means
 t3_AST <- 
   dat %>%
-  mutate( AgeBins = cut( age, breaks = c(7.8, seq(8.2, 9.2, 0.25), 9.3))) %>% 
-  group_by(AgeBins, Sex, Component) %>% 
+  mutate( AgeBins = cut( age, breaks = c(7.8, seq(8.2, 9.2, 0.25), 9.3)))|>
+  group_by(AgeBins, Sex, Component)|>
   summarise(N=n(), Age=mean(age),  M=mean(zScore), SD=sd(zScore), 
             CI=1.96*SD/sqrt(N), .groups="drop") 
 t3_AST
@@ -211,8 +211,8 @@ levels(dat$Comp2)
 
 t4_AST <- 
   dat %>%
-  mutate( AgeBins = cut( age, breaks = c(7.8, seq(8.2, 9.2, 0.25), 9.3))) %>% 
-  group_by(AgeBins, Sex, Comp2) %>% 
+  mutate( AgeBins = cut( age, breaks = c(7.8, seq(8.2, 9.2, 0.25), 9.3)))|>
+  group_by(AgeBins, Sex, Comp2)|>
   summarise(N=n(), Age=mean(age),  M=mean(zScore), SD=sd(zScore), 
             CI=1.96*SD/sqrt(N), .groups="drop") 
 t4_AST
@@ -263,8 +263,8 @@ levels(dat$Comp4)
 
 t6_AST <- 
   dat %>%
-  mutate( AgeBins = cut( age, breaks = c(7.8, seq(8.2, 9.2, 0.25), 9.3))) %>% 
-  group_by(AgeBins, Sex, Comp4) %>% 
+  mutate( AgeBins = cut( age, breaks = c(7.8, seq(8.2, 9.2, 0.25), 9.3)))|>
+  group_by(AgeBins, Sex, Comp4)|>
   summarise(N=n(), Age=mean(age),  M=mean(zScore), SD=sd(zScore), 
             CI=1.96*SD/sqrt(N), .groups="drop") 
 t6_AST
@@ -299,13 +299,13 @@ dat2$Comp3 <- fct_reorder(dat2$Component, dat2$Component, length)
 fct_count(dat2$Comp3)  # does work!
 
 # also other statistics, e.g., median
-dat %>% group_by(Component) %>% summarise(N=n(), median=median(zScore, na.rm=TRUE))
-dat %>% group_by(Component) %>% summarise(N=n(), mean=mean(zScore, na.rm=TRUE))
+dat|>group_by(Component)|>summarise(N=n(), median=median(zScore, na.rm=TRUE))
+dat|>group_by(Component)|>summarise(N=n(), mean=mean(zScore, na.rm=TRUE))
 
 t5_AST <- 
   dat2 %>%
-  mutate( AgeBins = cut( age, breaks = c(7.8, seq(8.2, 9.2, 0.25), 9.3))) %>% 
-  group_by(AgeBins, Sex, Comp3) %>% 
+  mutate( AgeBins = cut( age, breaks = c(7.8, seq(8.2, 9.2, 0.25), 9.3)))|>
+  group_by(AgeBins, Sex, Comp3)|>
   summarise(N=n(), Age=mean(age),  M=mean(zScore), SD=sd(zScore), 
             CI=1.96*SD/sqrt(N), .groups="drop") 
 t5_AST
@@ -338,25 +338,25 @@ The initial result was almost, but not exactly what expected:  Endurance was not
 Of course, we could have reordered already when constructing the table.  
 
 ```{r fig.width=7, fig.height=3.5}
-t_CT <- dat %>% 
-  mutate(cohort = as.numeric(as.character(Cohort))) %>% 
-  group_by(cohort, Component, Child) %>%   
-  summarise(N=n(), M=mean(zScore)) %>% 
-  group_by(cohort, Component) %>% 
-  summarise(N=n(), zScore=mean(M), SD=sd(M), CI=1.96*SD/sqrt(N), .groups="drop") %>% 
+t_CT <- dat|>
+  mutate(cohort = as.numeric(as.character(Cohort)))|>
+  group_by(cohort, Component, Child)|>  
+  summarise(N=n(), M=mean(zScore))|>
+  group_by(cohort, Component)|>
+  summarise(N=n(), zScore=mean(M), SD=sd(M), CI=1.96*SD/sqrt(N), .groups="drop")|>
   mutate(Comp6 = fct_reorder2(Component, cohort, zScore))
 
 tail(t_CT)
 
 # n of children per cohort
 nChild <-
-  dat %>% 
-  group_by(Cohort) %>% 
+  dat|>
+  group_by(Cohort)|>
   summarise(N=length(unique(Child)))
 
 fig8 <-
   dat %>%
-  mutate(cohort = as.numeric(as.character(Cohort))) %>% 
+  mutate(cohort = as.numeric(as.character(Cohort)))|>
   ggplot(aes(x=cohort, y=zScore, 
              group=Component, color=Component)) + 
   geom_point(data=t_CT, aes(x=cohort, y=zScore, group=Comp6, color=Comp6), fill="white") + 
