@@ -1,0 +1,73 @@
+https://pat-s.me/transitioning-from-x86-to-arm64-on-macos-experiences-of-an-r-user/#gfortran 
+https://www.mail-archive.com/r-sig-mac@r-project.org/msg06199.html 
+
+Re: [R-SIG-Mac] https://mac.r-project.org/benchmarks/
+BATES Timothy Tue, 02 Nov 2021 04:52:53 -0700
+
+Just for normies like me who don’t know what Simon meant :-)
+
+1. Open terminal.app and cd to where the relevant files are to keep commands 
+manageable in length
+
+cd /Library/Frameworks/R.framework/Resources/lib/
+
+2. Find the paths to different versions of veclib by  ls’ing the directory they 
+should live in:
+
+ls -l libRblas*dylib
+
+The existing symbolic link will look like this
+
+lrwxr-xr-x  1 root  admin      16 24 Sep 12:10 libRblas.dylib -> 
+libRblas.0.dylib
+
+
+Which means calls to “libRblas.dylib” will resolve to "libRblas.0.dylib"
+
+3. Overwrite this link with a new one from Apple's veclib 
+(libRblas.vecLib.dylib ) to libRblas.dylib
+
+ln -s -i -v libRblas.vecLib.dylib libRblas.dylib
+
+
+When you restart R, it should now call libRblas.vecLib.dylib for math
+
+To switch back
+
+cd /Library/Frameworks/R.framework/Resources/lib/
+ln -s -i -v libRblas.0.dylib libRblas.dylib
+
+t
+
+PS: The performance boost is staggering!!
+
+   I. Matrix calculation        Apple Blas (Sec)        Default Blas (Sec)      
+gain (loss)
+Creation, transp., deformation of a 2500x2500 matrix    0.546   0.672   123%
+2400x2400 normal distributed random matrix ^1000        0.139   0.139   100%
+Sorting of 7,000,000 random values      0.600   0.605   101%
+2800x2800 cross-product matrix (b = a' * a)     0.210   9.061   4315%   !!
+Linear regr. over a 3000x3000 matrix (c = a \ b')       0.134   4.379   3276%
+                 Trimmed geom. mean (2 extremes eliminated)     0.252   1.212   
+482%
+   II. Matrix functions
+FFT over 2,400,000 random values        0.198   0.183   92%
+Eigenvalues of a 640x640 random matrix  0.295   0.625   212%
+Determinant of a 2500x2500 random matrix        0.146   2.891   1980%   !!
+Cholesky decomposition of a 3000x3000 matrix    0.222   3.772   1696%   !!
+Inverse of a 1600x1600 random matrix    0.284   2.417   852%
+                Trimmed geom. mean (2 extremes eliminated)      0.232   1.634   
+704%
+   III. Programmation
+3,500,000 Fibonacci numbers calculation (vector calc)   0.204   0.204   100%
+Creation of a 3000x3000 Hilbert matrix (matrix calc)    0.232   0.211   91%
+Grand common divisors of 400,000 pairs (recursion)      0.274   0.243   89%
+Creation of a 500x500 Toeplitz matrix (loops)   0.038   0.041   106%
+Escoufier's method on a 45x45 matrix (mixed)    0.260   0.307   118%
+                Trimmed geom. mean (2 extremes eliminated)      0.231   0.219   
+95%
+Total time for all 15 tests     3.782   25.749  681%
+Overall mean (sum of I, II and III trimmed means/3)     0.238   0.757   318%
+The University of Edinburgh is a charitable body, registered in Scotland, with 
+registration number SC005336. Is e buidheann carthannais a th’ ann an Oilthigh 
+Dhùn Èideann, clàraichte an Alba, àireamh clàraidh SC005336.
