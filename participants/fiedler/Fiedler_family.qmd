@@ -22,6 +22,8 @@ library(lubridate)
 library(easystats)
 library(summarytools)
 library(lme4)
+library(haven)
+library(readxl)
 ```
 
 # Background
@@ -34,10 +36,197 @@ Pre and Post Data - which consists of a one week measurement each - is still mis
 
 File `df_ind` includes the same data only not for the whole family but for each family member. Here, I will add sex and age of the participants to the data.
 
-The Data has not been screened yet for unrealistic values (e.g. if participants tyxped 50 instead of 5 portions into the application) but the raw data is available and will be screened for mistakes until the workshop.
+The Data has not been screened yet for unrealistic values (e.g. if participants typed 50 instead of 5 portions into the application) but the raw data is available and will be screened for mistakes until the workshop.
 
 
 # Preprocessing
+
+## from the original data
+
+```{r}
+# family goals + achievment
+fam1 <- read_excel("data/KIT2_01_01.xlsx", sheet = 10)
+fam2 <- read_excel("data/KIT2_01_02.xlsx", sheet = 10)
+fam3 <- read_excel("data/KIT2_01_03.xlsx", sheet = 10)
+fam4 <- read_excel("data/KIT2_01_04.xlsx", sheet = 10)
+fam5 <- read_excel("data/KIT2_01_05.xlsx", sheet = 10)
+fam6 <- read_excel("data/KIT2_01_06.xlsx", sheet = 10)
+fam7 <- read_excel("data/KIT2_01_07.xlsx", sheet = 10)
+fam8 <- read_excel("data/KIT2_01_08.xlsx", sheet = 10)
+fam9 <- read_excel("data/KIT2_01_09.xlsx", sheet = 10)
+fam10 <- read_excel("data/KIT2_01_10.xlsx", sheet = 10)
+fam11 <- read_excel("data/KIT2_01_11.xlsx", sheet = 10)
+fam12 <- read_excel("data/KIT2_01_12.xlsx", sheet = 10)
+fam13 <- read_excel("data/KIT2_01_13.xlsx", sheet = 10)
+fam14 <- read_excel("data/KIT2_01_14.xlsx", sheet = 10)
+fam15 <- read_excel("data/KIT2_01_15.xlsx", sheet = 10)
+fam16 <- read_excel("data/KIT2_01_16.xlsx", sheet = 10)
+fam17 <- read_excel("data/KIT2_01_17.xlsx", sheet = 10)
+fam18 <- read_excel("data/KIT2_01_18.xlsx", sheet = 10)
+fam19 <- read_excel("data/KIT2_01_19.xlsx", sheet = 10)
+fam20 <- read_excel("data/KIT2_01_20.xlsx", sheet = 10)
+fam21 <- read_excel("data/KIT2_01_21.xlsx", sheet = 10)
+fam22 <- read_excel("data/KIT2_01_22.xlsx", sheet = 10)
+fam23 <- read_excel("data/KIT2_01_23.xlsx", sheet = 10)
+fam24 <- read_excel("data/KIT2_01_24.xlsx", sheet = 10)
+fam25 <- read_excel("data/KIT2_01_25.xlsx", sheet = 10)
+fam26 <- read_excel("data/KIT2_01_26.xlsx", sheet = 10)
+fam27 <- read_excel("data/KIT2_01_27.xlsx", sheet = 10)
+
+#participants achieved
+ind1 <- read_excel("data/KIT2_01_01.xlsx", sheet = 11)
+ind2 <- read_excel("data/KIT2_01_02.xlsx", sheet = 11)
+ind3 <- read_excel("data/KIT2_01_03.xlsx", sheet = 11)
+ind4 <- read_excel("data/KIT2_01_04.xlsx", sheet = 11)
+ind5 <- read_excel("data/KIT2_01_05.xlsx", sheet = 11)
+ind6 <- read_excel("data/KIT2_01_06.xlsx", sheet = 11)
+ind7 <- read_excel("data/KIT2_01_07.xlsx", sheet = 11)
+ind8 <- read_excel("data/KIT2_01_08.xlsx", sheet = 11)
+ind9 <- read_excel("data/KIT2_01_09.xlsx", sheet = 11)
+ind10 <- read_excel("data/KIT2_01_10.xlsx", sheet = 11)
+ind11 <- read_excel("data/KIT2_01_11.xlsx", sheet = 11)
+ind12 <- read_excel("data/KIT2_01_12.xlsx", sheet = 11)
+ind13 <- read_excel("data/KIT2_01_13.xlsx", sheet = 11)
+ind14 <- read_excel("data/KIT2_01_14.xlsx", sheet = 11)
+ind15 <- read_excel("data/KIT2_01_15.xlsx", sheet = 11)
+ind16 <- read_excel("data/KIT2_01_16.xlsx", sheet = 11)
+ind17 <- read_excel("data/KIT2_01_17.xlsx", sheet = 11)
+ind18 <- read_excel("data/KIT2_01_18.xlsx", sheet = 11)
+ind19 <- read_excel("data/KIT2_01_19.xlsx", sheet = 11)
+ind20 <- read_excel("data/KIT2_01_20.xlsx", sheet = 11)
+ind21 <- read_excel("data/KIT2_01_21.xlsx", sheet = 11)
+ind22 <- read_excel("data/KIT2_01_22.xlsx", sheet = 11)
+ind23 <- read_excel("data/KIT2_01_23.xlsx", sheet = 11)
+ind24 <- read_excel("data/KIT2_01_24.xlsx", sheet = 11)
+ind25 <- read_excel("data/KIT2_01_25.xlsx", sheet = 11)
+ind26 <- read_excel("data/KIT2_01_26.xlsx", sheet = 11)
+ind27 <- read_excel("data/KIT2_01_27.xlsx", sheet = 11)
+
+#pre-post data
+pre_post <- read_spss("data/Datenmaske_gesamt_FP2_10sek_Nicolas_after_Syntax.sav")
+
+#combine all family df
+df_fam_r <- bind_rows(fam1, fam2, fam3, fam4, fam5, fam6, fam7, fam8, fam9, fam10, fam11, fam12, fam13, fam14, fam15,
+                    fam16, fam17, fam18, fam19, fam20, fam21, fam22, fam23, fam24, fam25, fam26, fam27)
+
+#combine all individual df
+df_ind_r <- bind_rows(ind1, ind2, ind3, ind4, ind5, ind6, ind7, ind8, ind9, ind10, ind11, ind12, ind13, ind14, ind15,
+                    ind16, ind17, ind18, ind19, ind20, ind21, ind22, ind23, ind24, ind25, ind26, ind27)
+
+#rename variables and select relevant ones
+df_fam_w <- df_fam_r %>% 
+  dplyr::rename(id = "Family ID",
+                "goal-steps_1" = "goal steps (#1)",
+                "goal-mod_1" = "goal moderate (#1)",
+                "goal-vig_1" = "goal vigorous (#1)",
+                "goal-comact_1" = "goal common activity (#1)",
+                "goal-fvi_1" = "goal portions (#1)",
+                "goal-comfvi_1" = "goal common meals (#1)",
+                "ach-steps_1" = "achieved steps (#1)",
+                "ach-mod_1" = "achieved moderate (#1)",
+                "ach-vig_1" = "achieved vigorous (#1)",
+                "ach-fvi_1" = "achieved portions (#1)",
+                "ach-comact_1" = "acchieved_common_activies (#1)",
+                "ach-comfvi_1" = "acchieved_common_meals (#1)",
+                "goal-steps_2" = "goal steps (#2)",
+                "goal-mod_2" = "goal moderate (#2)",
+                "goal-vig_2" = "goal vigorous (#2)",
+                "goal-comact_2" = "goal common activity (#2)",
+                "goal-fvi_2" = "goal portions (#2)",
+                "goal-comfvi_2" = "goal common meals (#2)",
+                "ach-steps_2" = "achieved steps (#2)",
+                "ach-mod_2" = "achieved moderate (#2)",
+                "ach-vig_2" = "achieved vigorous (#2)",
+                "ach-fvi_2" = "achieved portions (#2)",
+                "ach-comact_2" = "acchieved_common_activies (#2)",
+                "ach-comfvi_2" = "acchieved_common_meals (#2)",
+                "goal-steps_3" = "goal steps (#3)",
+                "goal-mod_3" = "goal moderate (#3)",
+                "goal-vig_3" = "goal vigorous (#3)",
+                "goal-comact_3" = "goal common activity (#3)",
+                "goal-fvi_3" = "goal portions (#3)",
+                "goal-comfvi_3" = "goal common meals (#3)",
+                "ach-steps_3" = "achieved steps (#3)",
+                "ach-mod_3" = "achieved moderate (#3)",
+                "ach-vig_3" = "achieved vigorous (#3)",
+                "ach-fvi_3" = "achieved portions (#3)",
+                "ach-comact_3" = "acchieved_common_activies (#3)",
+                "ach-comfvi_3" = "acchieved_common_meals (#3)",
+                "goal-steps_4" = "goal steps (#4)",
+                "goal-mod_4" = "goal moderate (#4)",
+                "goal-vig_4" = "goal vigorous (#4)",
+                "goal-comact_4" = "goal common activity (#4)",
+                "goal-fvi_4" = "goal portions (#4)",
+                "goal-comfvi_4" = "goal common meals (#4)",
+                "ach-steps_4" = "achieved steps (#4)",
+                "ach-mod_4" = "achieved moderate (#4)",
+                "ach-vig_4" = "achieved vigorous (#4)",
+                "ach-fvi_4" = "achieved portions (#4)",
+                "ach-comact_4" = "acchieved_common_activies (#4)",
+                "ach-comfvi_4" = "acchieved_common_meals (#4)",
+                start_1 = "start date (#1)",
+                end_1 = "end date (#1)",
+                start_2 = "start date (#2)",
+                end_2 = "end date (#2)",
+                start_3 = "start date (#3)",
+                end_3 = "end date (#3)",
+                start_4 = "start date (#4)",
+                end_4 = "end date (#4)"
+                ) %>% 
+  dplyr::select(id, starts_with("start_"), starts_with("end_"), starts_with("goal-"), starts_with("ach-"))
+
+#convert to long format
+df_fam <- df_fam_w %>% 
+  pivot_longer(cols = start_1:com.fvi_4,#create long data frame for the variables id to USbmi (all variables)
+               names_to = c(".value", "week"), #create 2 new variables named value and step
+               names_sep = "_") #the sign _ determines where the variables are split (e.g. lac_1 leads to 2 variables lac (value) and 1 (step) )
+
+#rename individual df
+df_ind <- df_ind_r %>% 
+  dplyr::rename("ach-steps" = "achieved steps",
+                "ach-mod" = "achieved moderate",
+                "ach-vig" = "achieved vigorous",
+                "ach-fvi" = "achieved portions",
+                "ach-comact" = "acchieved_common_activies",
+                "ach-comfvi" = "acchieved_common_meals")
+
+#rename and select relevant pre-post variables
+change <- pre_post %>% 
+  dplyr::rename(id = ID,
+                sex = Sex,
+                age = Age,
+                height = Height,
+                weight = Weight,
+                intention_PA_T0 = T0_Intention_app_usage_PA,
+                intention_FVI_T0 = T0_Intention_app_usage_NU,
+                intention_PA_T1 = T1_Intention_app_usage_PA,
+                intention_FVI_T1 = T1_Intention_app_usage_NU,
+                steps_T0 = T0_Steps_week,
+                mod_T0 = T0_mod_60_week,
+                vig_T0 = T0_vig_60_week,
+                nwt_T0 = T0_Non_wear_time_week,
+                steps_T1 = T1_STEPS_week,
+                mod_T1 = T1_mod_60_week,
+                vig_T1 = T1_vig_60_week,
+                nwt_T1 = T1_non_wear_time_week,
+                FVI_T0 = T0_FVI,
+                FVI_T1 = T1_FVI) %>% 
+  dplyr::select(id, sex, age, height, weight, intention_PA_T0, intention_FVI_T0, steps_T0, mod_T0, vig_T0, nwt_T0,
+                intention_PA_T1, intention_FVI_T1, steps_T1, mod_T1, vig_T1, nwt_T1, FVI_T0, FVI_T1)
+
+#create change variables from Pre to Post
+change <- change %>% 
+  mutate(steps_c = steps_T1 - steps_T0,
+         mod_c = mod_T1 - mod_T0,
+         vig_c = vig_T1 - vig_T0,
+         nwt_c = nwt_T1 - nwt_T0,
+         FVI_c = FVI_T1 - FVI_T0)
+
+
+summary(change)
+
+#combine all df TODO
+```
 
 ## RK style guide
 
@@ -58,6 +247,7 @@ library(readxl)
 library(lme4)
 library(hypr)
 library(summarytools)
+library(haven)
 
 # respecting color vision deficiency
 cbPalette <- c( "#0072B2", "#D55E00", "#009E73", "#CC79A7",
