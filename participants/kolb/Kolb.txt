@@ -1,0 +1,18 @@
+(a) Context
+Subset of MoMo-data up to three measurements per subject, MVPA, Minutes of sportengagement and socioeconomic status via MoMo-PAQ
+
+(b) Issues
+	(1) Influence of PA and sport on health (body comp)
+	(2) influence of sex
+	(3) influence of cohort
+	(4) influence of ses status
+
+(c) Variables in file
+	subID:	Subject id, random factor
+	age:	age in years, within-subject and within-time fixed factor
+	sex:	sex of participant (levels: 1 = male, 2 = female), fixed factor
+	time:	measuring point (3 levels: T1, T2, T3)
+	MVPA:	days per week with at least 60 min MVPA, 
+	sport:	weekly minutes of sport engagement corrected for seasonality
+	whr:	waist to hip ratio, dependent variable
+	ses:	socioeconomic status (Winkler)

@@ -1,0 +1,200 @@
+---
+title: "Anna Dziuba: Covid Effects on Mental State"
+author: "Reinhold Kliegl"
+date: "2022-09-17 (last revised: `r format(Sys.time())`)"
+format: 
+  html:
+    embed-resources: true
+    toc: true
+    toc-depth: 2
+    number-sections: true
+    fig-width: 8
+    fig-height: 6
+editor_options: 
+  chunk_output_type: console
+---
+
+# Background
+
++ Forschungsfrage: Gibt es mittelfristige Auswirkungen der COVID-19-Pandemie auf das psychische Befinden bei Erwachsenen ab 35 Jahren (Bürger*innen im mittleren und hohen Erwachsenenalter der Gemeinde Bad Schönborn)?
++ Psychisches Befinden gemessen am Kohärenzsinn, seelischen Gesundheit sowie der Zufriedenheit mit dem Leben und der Gesundheit
++ Der Datensatz besteht aus 6 Messzeitpunkte mit Längsschnittprobanden und neuen Querschnittsprobanden zu fast jedem Messzeitpunkt
+
+
+# Preprocessing
+
+## RK style guide
+
++ Random factors should be factors, not integers!
++ Factors capitalized, continuous variables in lower case
++ `Subj` instead of `ID`; prefix subject and item numbers with `S` and `I` 
++ Short variable names and factor levels, but respect tradeoff with mmemonic value
++ Labels should be of equal length
++ Hint: Leave out vowels in names and labels
++ See Jenny Bryan's [Naming Things](https://docplayer.net/55248970-Naming-things-prepared-by-jenny-bryan-for-reproducible-science-workshop.html)
+
+## Packages
+
+```{r}
+library(easystats)
+library(tidyverse)
+library(haven)
+library(labelled)
+library(lme4)
+library(summarytools)
+
+# respecting color vision deficiency
+cbPalette <- c( "#0072B2", "#D55E00", "#009E73", "#CC79A7",
+                "#F0E442", "#56B4E9", "#999999", "#E69F00")
+```
+
+## Read and transform data
+
++ Missing SES to level 3 -- most frequent one
+
+```{r}
+data <- 
+   read_sav("DZIUBA.sav") |> 
+   remove_labels() |> 
+   select(Subj=1, Sex=2, SES=3, covidPsych=22, 4:9, 23:46) |> 
+   mutate( Subj = factor(paste0("S", str_pad(as.character(Subj), width = 4, side = "left", pad = "0"))),
+           Sex = factor(Sex, levels=0:1, labels=c("female", "male")),
+           SES = ifelse(is.na(SES), 3, SES),
+           SES = factor(SES)
+)
+
+colnames(data) <-  gsub("Alter", "Age", colnames(data))
+colnames(data) <-  gsub("Zufriedenheit_Leben", "Life", colnames(data))
+colnames(data) <-  gsub("Zufriedenheit_Gesundheit", "Health", colnames(data))
+stview(dfSummary(data))
+```
+
+## Subject 
+
+```{r}
+dat_subj <- 
+  data |> 
+  select(1:3, 5:10) |> 
+  pivot_longer(4:9, names_prefix="Age_", names_to="year", 
+               values_to= "age", values_drop_na=TRUE,
+               names_transform=list(year=as.integer),) |> 
+   mutate(year = ifelse(year>90, year+1900, year+2000)) |> 
+   select(Subj, year, Sex, SES, age)
+
+stview(dfSummary(dat_subj))
+```
+
+## Measures
+
+```{r}
+dat_msrs <- 
+  data |> 
+  select(1, 11:34) |> 
+  pivot_longer(2:25, names_to=c("Measure", "year"), names_sep="_",
+               names_transform=list(Measure=as.factor, year=as.integer),
+               values_to="score", values_drop_na=TRUE) |> 
+  mutate(year = ifelse(year>90, year+1900, year+2000)) |> 
+  group_by(Measure) %>%
+  mutate(zScoreA  = as.numeric(scale(score)),
+         zBound30 = ifelse(abs(zScoreA) < 3.0, TRUE, FALSE)) %>% 
+  filter(zBound30) %>% 
+  group_by(Measure) |> 
+  mutate(zScore = as.numeric(scale(score))) |> 
+  ungroup() |> 
+  select(Subj, year, Measure, zScore)
+
+stview(dfSummary(dat_msrs))
+```
+
+## Combine
+
+```{r}
+dat <- 
+  dat_msrs |> 
+  left_join(dat_subj, by=c("Subj", "year")) |> 
+  relocate(Sex:age, .after=Subj)
+
+stview(dfSummary(dat))
+```
+
+# Plots
+
+## Zero-order year effects
+
+```{r}
+dat |> 
+  ggplot(aes(x=year, y=zScore, group=Measure, color=Measure)) +
+  geom_smooth(method="lm", formula=y~poly(x,3), se=FALSE) +
+  scale_x_continuous("Year", breaks=seq(1992,2022,4)) +
+  scale_y_continuous("zScore [+/- SD]") +
+  scale_colour_manual("Measure", values=cbPalette) +
+  geom_hline(yintercept=0) + geom_vline(xintercept=2019) +
+  theme_bw() + theme(legend.position="top")
+```
+
+## Zero-order age effects
+
+```{r}
+dat |> 
+  ggplot(aes(x=age, y=zScore, group=Measure, color=Measure)) +
+  geom_smooth(method="lm", formula=y~poly(x,3), se=FALSE) +
+  scale_x_continuous("Age", breaks=seq(30,86,4)) +
+  scale_y_continuous("zScore [+/- SD]") +
+  scale_colour_manual("Measure", values=cbPalette) +
+  geom_hline(yintercept=0) +
+  theme_bw() + theme(legend.position="top")
+```
+
+
+# Linear mixed models
+
+## Contrasts and trends
+
++ `contr.sum` uses ‘sum to zero contrasts’, that is returns the difference of factor level means to Grand Mean (except for the last level); Grand Mean is mean of condition means. 
++ Not much evidence for more than linear trends
+
+```{r}
+contrasts(dat$Sex) <- contr.sum(2)
+contrasts(dat$Sex) <- contr.sum(2)
+```
+
+## _A priori_ LMM
+
+```{r}
+dat$a1 <- dat$age - 55
+dat$a2 <- dat$a1*dat$a1
+dat$y1 <- dat$year - 2006.5
+dat$y2 <- dat$y1*dat$y1
+
+m1 <- lmer(zScore ~ 1 + (Measure+Sex)/(y1+y2+a1+a2) + (1 | Subj), data=dat, 
+           REML=FALSE, control=lmerControl(calc.derivs=FALSE))
+print(summary(m1), corr=FALSE)
+```
+
+Let's check whether there are specific COVID effects in 2021
+
+```{r}
+dat$covid <- ifelse(dat$year==2021, 1, 0)
+
+m2 <- lmer(zScore ~ 1 + (Measure+Sex)/(y1+y2+(a1+a2)*covid) + (1 | Subj), data=dat, 
+           REML=FALSE, control=lmerControl(calc.derivs=FALSE))
+print(summary(m2), corr=FALSE)
+
+anova(m1, m2)
+```
+
+
+```{r}
+m3 <- lmer(zScore ~ 1 + (Measure*Sex)/(y1+y2+(a1+a2)*covid) + (1 | Subj), data=dat, 
+           REML=FALSE, control=lmerControl(calc.derivs=FALSE))
+print(summary(m2), corr=FALSE)
+
+anova(m1, m2, m3)
+```
+
+
+# Appendix
+
+```{r}
+sessionInfo()
+```

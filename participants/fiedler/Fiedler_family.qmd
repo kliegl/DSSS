@@ -1,0 +1,166 @@
+---
+title: "Janis Fiedler: Collaborative Goals for PA and FVI for Families"
+author: "Reinhold Kliegl"
+date: "2022-09-17 (last revised: `r format(Sys.time())`)"
+format: 
+  html:
+    embed-resources: true
+    toc: true
+    toc-depth: 2
+    number-sections: true
+    fig-width: 8
+    fig-height: 6
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(arrow)
+library(tidyverse)
+library(lubridate)
+library(easystats)
+library(summarytools)
+library(lme4)
+```
+
+# Background
+
+The aim of this paper is to evaluate the association of self-selected collaborative goal achievement with PA and FVI changes from pre-post in families.
+Additionally, the contribution of different family members to collaborative goal achievement will be shown descriptively.
+
+File `df_fam` includes data of the 3 week mobile health intervention period during the SMARTFAMILY trial. Families set self selected goals and received timely feedback on the SMARTFAMILY app.
+Pre and Post Data - which consists of a one week measurement each - is still missing from the excel file but I will provide it until the workshop.
+
+File `df_ind` includes the same data only not for the whole family but for each family member. Here, I will add sex and age of the participants to the data.
+
+The Data has not been screened yet for unrealistic values (e.g. if participants tyxped 50 instead of 5 portions into the application) but the raw data is available and will be screened for mistakes until the workshop.
+
+
+# Preprocessing
+
+## RK style guide
+
++ Random factors should be factors, not integers!
++ Factors capitalized, continuous variables in lower case
++ `Subj` instead of `ID`; prefix subject and item numbers with `S` and `I` 
++ Short variable names and factor levels, but respect tradeoff with mmemonic value
++ Labels should be of equal length
++ Hint: Leave out vowels in names and labels
++ See Jenny Bryan's [Naming Things](https://docplayer.net/55248970-Naming-things-prepared-by-jenny-bryan-for-reproducible-science-workshop.html)
+
+## Packages
+
+```{r}
+library(easystats)
+library(tidyverse)
+library(readxl)
+library(lme4)
+library(hypr)
+library(summarytools)
+
+# respecting color vision deficiency
+cbPalette <- c( "#0072B2", "#D55E00", "#009E73", "#CC79A7",
+                "#F0E442", "#56B4E9", "#999999", "#E69F00")
+```
+
+## Read and transform data
+
++ Strange format in excel spreadsheet
++ Avoid "." as separator
+
+```{r}
+dat_w <- 
+  df_fam <- read_excel("df_fam_v2.xlsx") |> 
+    rename("Family"="id") |> 
+    select(Family, week, start, end, 
+           goal_mod=goal.mod, ach_mod=mod, 
+           goal_vig=goal.vig, ach_vig=vig,
+           goal_fvi=goal.fvi, ach_fvi=fvi, 
+           goal_cact=goal.comact, ach_cact=com.act,  
+           goal_cfvi=goal.comfvi, ach_cfvi=com.fvi) |> 
+    mutate(start=ymd(start), end=ymd(end),
+           delta_mod=ach_mod-goal_mod, 
+           delta_vig=ach_vig-goal_vig, 
+           delta_fvi=ach_fvi-goal_fvi,
+           delta_cact=ach_cact-goal_cact, 
+           delta_cfvi=ach_cfvi-goal_cfvi)
+
+#stview(dfSummary(dat))
+
+dat <- 
+  dat_w |> 
+  pivot_longer(5:19, names_to=c("Category", "Type"), names_sep="_", values_to="value") |> 
+  mutate(Family=factor(Family), 
+         Category=factor(Category, levels=c("goal", "ach", "delta")), 
+         Type=factor(Type, levels=c("mod", "vig", "fvi", "cact", "cfvi"))) |> 
+         filter(!is.na(value))  # 27*4*3*5 = 1620; 1569/1620=.97
+
+stview(dfSummary(dat))
+```
+
+**Issues**
+
++ Filter for plausible values
++
+
+# Descriptives (smooths)
+
+```{r}
+dat |> 
+  group_by(week, Category, Type) |> 
+  summarise(N=n(), M=mean(value), SE=sd(value)/sqrt(N)) |> 
+  ggplot(aes(x=week, y=M, group=Type, color=Type)) +
+  geom_point() + geom_line() +
+  facet_grid(Category ~ ., scale="free") +
+  scale_colour_manual("Type", values=cbPalette) +
+  scale_x_continuous("Week") +
+  scale_y_continuous("Value") +
+  theme_bw()  +
+  coord_cartesian(xlim=c(1, 4))
+```
+
+```{r}
+dat |> 
+  group_by(week, Category, Type) |> 
+  summarise(N=n(), M=mean(value), SE=sd(value)/sqrt(N)) |> 
+  ggplot(aes(x=week, y=M, group=Category, color=Category)) +
+  geom_point() + geom_line() +
+  facet_grid(Type ~ ., scale="free") +
+  scale_colour_manual("Category", values=cbPalette) +
+  scale_x_continuous("Week") +
+  scale_y_continuous("Value") +
+  theme_bw()  +
+  coord_cartesian(xlim=c(1, 4))
+```
+
+# Linear mixed models
+
+## Contrasts and trends
+
++ `contr.sum` uses ‘sum to zero contrasts’, that is returns the difference of factor level means to Grand Mean (except for the last level); Grand Mean is mean of condition means. 
++ Not much evidence for more than linear trends
+
+
+```{r}
+datx <- dat |> filter(Category != "delta") |> droplevels()
+datx$Week <- factor(datx$week)
+contrasts(datx$Week) <- contr.helmert(4)
+contrasts(datx$Week)
+contrasts(datx$Category) <- contr.sum(2)
+```
+
+## _A priori_ LMM
+
+```{r}
+m_voi1 <- lmer(value ~ 0 + Type/(Category*Week) + (1 | Family), data=datx, REML=FALSE,
+              control=lmerControl(calc.derivs=FALSE))
+print(summary(m_voi1), corr=FALSE)
+```
+
+# Appendix
+
+```{r}
+sessionInfo()
+```
+
