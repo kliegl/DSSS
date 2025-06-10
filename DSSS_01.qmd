@@ -1,0 +1,159 @@
+---
+title: "DSSS-01: Introduction"
+author: "Reinhold Kliegl"
+date: "2025-06-10 (updated: `r Sys.Date()`)"
+output:
+  html_document:
+    number_sections: yes
+    toc: yes
+    toc_depth: 2
+    toc_float: no
+    code_folding: hide
+editor_options: 
+  chunk_output_type: console
+---
+
+# Background
+
+## Theory
+
+< Describe the research questions and data>
+
+### Proposition 1
+
+
+### Proposition 2
+
+
+## Variables
+
+< Dictionary of variables >
+
+# Setup
+
+R needs packages. You can install the packages needed for this script by running the `install.packages()` command in the next R chunk once. This command retrieves the packages from the web and installs them in a library on your computer. After you installed the packages, you can actually delete this chunk. The `library()`  command fetches the packages from the library on your computer and makes the commands in the packages available for the currect session. 
+
+
+```{r eval=FALSE}
+install.packages(c("tidyverse", "haven", "readxl", "WriteXLS", "summarytools" ))
+```
+
+The following commands retrieve the packages from the library on your computer. This needs to be done at the beginning of every script.
+
+```{r}
+library(tidyverse)
+library(readxl)
+library(WriteXLS)
+library(summarytools)
+```
+
+# Toy example data
+
++ Generate data
++ Write data to Excel spreadsheet
++ Write data to SPSS
+
+```{r}
+set.seed(42)
+x <- round(   runif(300, min=0, max=10  )   )
+length(x)
+
+X <- matrix(x, nrow=20, byrow=FALSE)
+
+df0 <- data.frame(Subj=1:20)
+
+df <- data.frame(Subj=1:20, X)
+
+# Excel
+WriteXLS(df, "./data/DSSS_01.xlsx")
+
+# SPSS
+write_sav(df,"./data/DSSS_01.sav", compress = c("byte", "none", "zsav"), adjust_tz = TRUE)
+```
+
+# Read data
+
+Now we can read the data we generated back into R. 
+
+```{r}
+# Read Excel
+df2_xls <- read_xlsx("./data/DSSS_01.xlsx")
+
+# Read SPSS
+df2_sav <- read_spss(
+  "./data/DSSS_01.sav",
+  user_na = FALSE,
+  col_select = NULL,
+  skip = 0,
+  n_max = Inf,
+  .name_repair = "unique"
+)
+
+df2_xls == df2_sav
+```
+
+# Preprocessing
+
+```{r}
+df3 <- 
+  df2|> 
+  mutate(Subj=paste0("S", Subj))
+df3
+
+df3 |> ggplot(aes(x=Subj, y=X1, group=1)) + geom_line() 
+# Ugly graphic!
+
+
+df4 <- 
+  df2 |> 
+  mutate(Subj = paste0("User ", str_pad(Subj, width=2, side="left", pad="0")))
+
+df4
+df4 |> 
+  ggplot(aes(x=Subj, y=X1, group=1)) + 
+  geom_line() + 
+  xlab("")
+# Much better graphic!
+
+# Alternative, not-tidyverse style of generating the same graph
+ggplot(df4, aes(x=Subj, y=X1, group=1)) + geom_line() + xlab("")
+```
+
+# Descriptive statistics
+
+```{r}
+descr(df2)
+```
+
+
+# Graphs
+
+```{r}
+df4 |> ggplot(aes(x=X1, y=X2)) + geom_point() + theme_bw()
+```
+
+
+# Inferential statistics
+
+For example, correlations between first five variables. 
+
+```{r}
+df4 |>  select(X1:X5) |> cor()
+```
+
+# Appendix
+
+# How to we change the default RMarkdown script?
+
+We can google "changing default RMarkdown script". This page is offered:
+
+https://community.rstudio.com/t/changing-default-rmd-script/36426 
+
+Not very helpful, unfortunately. At least, I cannot see the file with the default code.
+
+# What packages did we use in this session?
+
+```{r}
+sessionInfo()
+```
+
