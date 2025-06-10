@@ -1,14 +1,17 @@
 ---
 title: "DSSS-01: Introduction"
 author: "Reinhold Kliegl"
-date: "2025-06-10 (updated: `r Sys.Date()`)"
-output:
-  html_document:
-    number_sections: yes
-    toc: yes
-    toc_depth: 2
-    toc_float: no
-    code_folding: hide
+date-format: iso
+format: 
+  html:
+    embed-resources: true
+    toc: true
+    toc-depth: 3
+    code-fold: true
+    number-sections: true
+    fig-width: 10
+    fig-height: 7
+    fig-format: svg
 editor_options: 
   chunk_output_type: console
 ---
@@ -44,6 +47,7 @@ The following commands retrieve the packages from the library on your computer. 
 library(tidyverse)
 library(readxl)
 library(WriteXLS)
+library(haven)
 library(summarytools)
 ```
 
@@ -90,6 +94,7 @@ df2_sav <- read_spss(
 )
 
 df2_xls == df2_sav
+df2 <- df2_sav
 ```
 
 # Preprocessing
@@ -143,13 +148,7 @@ df4 |>  select(X1:X5) |> cor()
 
 # Appendix
 
-# How to we change the default RMarkdown script?
-
-We can google "changing default RMarkdown script". This page is offered:
-
-https://community.rstudio.com/t/changing-default-rmd-script/36426 
-
-Not very helpful, unfortunately. At least, I cannot see the file with the default code.
+## Quarto tutorial
 
 # What packages did we use in this session?
 

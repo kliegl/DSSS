@@ -1,0 +1,84 @@
+---
+title: "DSSS-03: Tidyverse Commands"
+author: "Reinhold Kliegl"
+date-format: iso
+format: 
+  html:
+    embed-resources: true
+    toc: true
+    toc-depth: 3
+    code-fold: true
+    number-sections: true
+    fig-width: 10
+    fig-height: 7
+    fig-format: svg
+editor_options: 
+  chunk_output_type: console
+---
+
+# Setup
+
+```{r}
+library(tidyverse)
+library(readxl)   # this package allows us to read xlsx files
+library(lubridate)
+
+library(summarytools) # dfSummary(), descr(), freq()
+```
+
+# Read data 
+
+We use Reinhold Kliegl's data.
+
+```{r}
+dat <- read_csv("data/simul_data.csv")
+```
+
+# Preprocessing
+
+```{r}
+
+```
+
+
+# tidyverse
+ 
+Vocabulary -- is about 10 commands
+
+## Commands working on columns (variables)
+
++ `select()` -- extract a subset of columns
++ `relocate()` -- adjust position of variable
+
+## Commands works on rows (usually observations)
+
++ `filter()` -- extract a subset of rows 
++ `arrange()` -- orders the observations in the data frame
++ `mutate()` -- add new variables/columns, unless you overwrite an existing one.
+    
+## Logical operators
+
++ ==, >, >, >=, >=
++ |, &,  %in%
++ is.na()
+
+    
+## Arithmetic operators
+
++ +, -, *, /, ^
++ log(), log(2), log10()
++ lead(), lag(), lag2()
++ cumsum()
+    
+
+```{r}
+
+```
+
+
+# Appendix
+
+```{r}
+sessionInfo()
+```
+

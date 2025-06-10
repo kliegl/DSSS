@@ -1,0 +1,89 @@
+---
+title: "DSSS-02: Reading Participants' Data"
+author: "Reinhold Kliegl"
+date-format: iso
+format: 
+  html:
+    embed-resources: true
+    toc: true
+    toc-depth: 3
+    code-fold: true
+    number-sections: true
+    fig-width: 10
+    fig-height: 7
+    fig-format: svg
+editor_options: 
+  chunk_output_type: console
+---
+
+# Setup
+
+```{r}
+library(tidyverse)
+library(readxl)   # this package allows us to read xlsx files
+library(lubridate)
+
+
+library(summarytools) # dfSummary(), descr(), freq()
+```
+
+# RK
+
+## Context
+Simulation of simple reaction times from a picture-naming experiment. Fifty subjects name  75 different pictures (items) under four transparency conditions (i.e., 300 trials per subject; total N = 15,000). The greyness of the screen background is randomly sampled from a normal distribution for each trial. 
+
+## Issues
+1. Theory-guided contrast specification for four-level factor
+2. Specification of crossed-random factor linear mixed models
+3. Visualization of partial effects of covariate x factor interactions
+
+## Variables in file
+    Subj : subject id; random factor
+    Item : item id; random factor
+    Trnsp: transparency of item (levels: A = 100%, B = 75%, C = 50 %, D = 25%); 
+           within-subject and within-item fixed factor
+    scrb : screen background; within-subject and within-item covariate
+    rt   : reaction time, dependent variable
+
+## Preprocessing
+
+### Read the data
+
+```{r}
+dat <- read_csv("data/simul_data.csv")
+```
+
+### A few quick checks
+
+```{r}
+view(dfSummary(dat))
+
+descr(dat, stats="common")  
+descr(dat, stats="fivenum") 
+```
+
+### Fix `Subj` and `Item` type and levels
+
++ same length of levels by left padding with zeros
++ convert to factor
+
+```{r}
+dat <- 
+  dat |> 
+   mutate(
+    Subj = as_factor(paste0("S", str_pad(Subj, width = 2, side = "left", pad = "0"))),
+    Item = as_factor(paste0("I", str_pad(Item, width = 2, side = "left", pad = "0")))
+    )
+
+view(dfSummary(dat))
+```
+
+# N.N.
+
+
+# Appendix
+
+```{r}
+sessionInfo()
+```
+
